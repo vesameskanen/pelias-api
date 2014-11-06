@@ -37,6 +37,8 @@ app.get( '/suggest', sanitisers.suggest.middleware, controllers.suggest() );
 
 // search API
 app.get( '/search', sanitisers.search.middleware, controllers.search() );
+app.get( '/search/points', sanitisers.reverse.middleware, controllers.search(undefined, require('./query/point')) );
+app.get( '/search/shape', sanitisers.reverse.middleware, controllers.search(undefined, require('./query/envelope')) );
 
 // reverse API
 app.get( '/reverse', sanitisers.reverse.middleware, controllers.search(undefined, require('./query/reverse')) );
