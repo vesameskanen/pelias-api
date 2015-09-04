@@ -37,7 +37,7 @@ module.exports.tests.sanitize_lat = function(test, common) {
   };
   test('invalid lat', function(t) {
     lats.invalid.forEach( function( lat ){
-      sanitize({ lat: lat, lon: 0 }, function( err, clean ){
+      sanitize({ boundary: { circle: { lat: lat, lon: 0 } } }, function( err, clean ){
         t.equal(err, 'invalid param \'lat\': must be >-90 and <90', lat + ' is an invalid latitude');
         t.equal(clean, undefined, 'clean not set');
       });
@@ -46,7 +46,7 @@ module.exports.tests.sanitize_lat = function(test, common) {
   });
   test('valid lat', function(t) {
     lats.valid.forEach( function( lat ){
-      sanitize({ lat: lat, lon: 0 }, function( err, clean ){
+      sanitize({ boundary: { circle: { lat: lat, lon: 0 } } }, function( err, clean ){
         var expected = JSON.parse(JSON.stringify( defaultClean ));
         expected.lat = parseFloat( lat );
         t.equal(err, undefined, 'no error');
@@ -57,7 +57,7 @@ module.exports.tests.sanitize_lat = function(test, common) {
   });
   test('missing lat', function(t) {
     lats.missing.forEach( function( lat ){
-      sanitize({ lat: lat, lon: 0 }, function( err, clean ){
+      sanitize({ boundary: { circle: { lat: lat, lon: 0 } } }, function( err, clean ){
         t.equal(err, 'missing param \'lat\'', 'latitude is a required field');
         t.equal(clean, undefined, 'clean not set');
       });
