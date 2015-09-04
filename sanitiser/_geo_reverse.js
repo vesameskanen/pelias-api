@@ -12,9 +12,17 @@ module.exports = function sanitize( req ){
     params = {};
   }
 
+  if( !isObject( params.boundary ) ){
+    params.boundary = {};
+  }
+
+  if( !isObject( params.boundary.circle ) ){
+    params.boundary.circle = {};
+  }
+
   try {
-    geo_common.sanitize_coord( 'lat', clean, params.lat, latlon_is_required );
-    geo_common.sanitize_coord( 'lon', clean, params.lon, latlon_is_required );
+    geo_common.sanitize_coord( 'lat', clean, params.boundary.circle.lat, latlon_is_required );
+    geo_common.sanitize_coord( 'lon', clean, params.boundary.circle.lon, latlon_is_required );
     geo_common.sanitize_bbox(clean, params.bbox);
   }
   catch (err) {
