@@ -13,8 +13,8 @@ function generate( params ){
       lat: params.lat,
       lon: params.lon
     };
-  } 
-  
+  }
+
   var query = queries.distance( centroid, { size: params.size } );
   var text = params.text;
 
@@ -41,7 +41,7 @@ function generate( params ){
   }
 
   // add search condition to distance query
-  query.query.filtered.query.bool.must.push({ 
+  query.query.filtered.query.bool.must.push({
     'match': {
       'name.default': {
         'query': text,

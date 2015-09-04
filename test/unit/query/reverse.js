@@ -1,4 +1,3 @@
-
 var generate = require('../../../query/reverse');
 var admin_boost = 'admin_boost';
 var population = 'population';
@@ -77,7 +76,7 @@ module.exports.tests.query = function(test, common) {
     var query = generate({
       lat: 29.49136, lon: -82.50622
     });
-    
+
     var expected = {
       'query': {
         'filtered': {
@@ -130,7 +129,7 @@ module.exports.tests.query = function(test, common) {
         lat: 29.49136, lon: -82.50622, size: size
       });
       expected.size = size ? size : 1;
-      t.deepEqual(query, expected, 'valid reverse query for size: '+ size);      
+      t.deepEqual(query, expected, 'valid reverse query for size: '+ size);
     });
     t.end();
   });
@@ -202,7 +201,6 @@ module.exports.tests.query = function(test, common) {
 };
 
 module.exports.all = function (tape, common) {
-
   function test(name, testFunction) {
     return tape('reverse query ' + name, testFunction);
   }
