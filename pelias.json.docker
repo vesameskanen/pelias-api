@@ -28,6 +28,7 @@
     "sizePadding": 6,
     "minConfidence": 0.2,
     "relativeMinConfidence": 0.4,
+    "languageMatchThreshold": 0.25,
     "query": {
       "search": {
         "disableFallback": true,

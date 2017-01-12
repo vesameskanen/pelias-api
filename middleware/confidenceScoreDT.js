@@ -22,6 +22,25 @@ var confidenceAddressParts = {
   country: { parent: 'parent', field: 'country_a', numeric: false, weight: 4 }
 };
 
+// layers priority in result sorting
+var layers = [
+  'stop',
+  'station',
+  'venue',
+  'address',
+  'street',
+  'neighbourhood',
+  'borough',
+  'locality',
+  'localadmin',
+  'county',
+  'macrocounty',
+  'region',
+  'macroregion',
+  'dependency',
+  'country'
+];
+
 function setup(peliasConfig) {
   if (check.assigned(peliasConfig)) {
     if (peliasConfig.languages) {
@@ -30,6 +49,10 @@ function setup(peliasConfig) {
     if(peliasConfig.minConfidence) {
       minConfidence = peliasConfig.minConfidence;
     }
+    if (peliasConfig.layerPriority) {
+      layers = peliasConfig.layerPriority;
+    }
+
     relativeMinConfidence = peliasConfig.relativeMinConfidence;
     var localization = peliasConfig.localization;
     if (localization) {
@@ -85,6 +108,9 @@ function compareProperty(p1, p2) {
 function compareResults(a, b) {
   if (b.confidence !== a.confidence) {
     return b.confidence - a.confidence;
+  }
+  if(a.layer !== b.layer) { // larger has higher priority
+    return layers.indexOf(b.layer) - layers.indexOf(a.layer);
   }
   if (a.distance !== b.distance) {  // focus point defined
     return a.distance - b.distance;
