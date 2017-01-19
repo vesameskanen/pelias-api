@@ -8,6 +8,7 @@ var sanitizeAll = require('../sanitizer/sanitizeAll'),
       iso2_to_iso3: require('../sanitizer/_iso2_to_iso3'),
       city_name_standardizer: require('../sanitizer/_city_name_standardizer'),
       size: require('../sanitizer/_size')(/* use defaults*/),
+      lang: require('../sanitizer/_lang'),
       layers: require('../sanitizer/_targets')('layers', type_mapping.layer_mapping),
       sources: require('../sanitizer/_targets')('sources', type_mapping.source_mapping),
       // depends on the layers and sources sanitizers, must be run after them

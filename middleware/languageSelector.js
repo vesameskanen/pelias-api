@@ -21,9 +21,8 @@ function setup(peliasConfig) {
     if (_.isUndefined(req.clean)) {
       return next();
     }
-
-   req.clean.lang = req.clean.lang || defaultLang;
-   next();
+    req.clean.lang = req.clean.lang || defaultLang;
+    next();
  };
 }
 
