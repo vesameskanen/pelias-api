@@ -96,6 +96,7 @@ module.exports.tests.sanitize = function(test, common) {
       '_iso2_to_iso3',
       '_city_name_standardizer',
       '_size',
+      '_lang',
       '_targets/layers',
       '_targets/sources',
       '_sources_and_layers',
