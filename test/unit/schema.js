@@ -221,7 +221,7 @@ module.exports.tests.api_validation = (test, common) => {
 
   });
 
-  test('unknown properties in api.localization should throw error', (t) => {
+/* test('unknown properties in api.localization should throw error', (t) => {
     var config = {
       api: {
         version: 'version value',
@@ -237,8 +237,8 @@ module.exports.tests.api_validation = (test, common) => {
     t.throws(validate.bind(null, config), /"unknown_property" is not allowed/);
 
     t.end();
-
   });
+*/
 
   test('non-array api.localization.flipNumberAndStreetCountries should throw error', (t) => {
     [null, 17, {}, false, 'string'].forEach((value) => {
