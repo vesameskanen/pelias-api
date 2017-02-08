@@ -1,7 +1,5 @@
-
-var express = require('express');
 var Router = require('express').Router;
-var reverseQuery = require('../query/reverse');
+var elasticsearch = require('elasticsearch');
 
 /** ----------------------- sanitizers ----------------------- **/
 var sanitizers = {
@@ -32,7 +30,9 @@ var controllers = {
 var queries = {
   libpostal: require('../query/search'),
   fallback_to_old_prod: require('../query/search_original'),
-  structured_geocoding: require('../query/structured_geocoding')
+  structured_geocoding: require('../query/structured_geocoding'),
+  reverse: require('../query/reverse'),
+  autocomplete: require('../query/autocomplete')
 };
 
 /** ----------------------- controllers ----------------------- **/
@@ -47,6 +47,7 @@ var postProc = {
   confidenceScoresReverse: require('../middleware/confidenceScoreReverse'),
   accuracy: require('../middleware/accuracy'),
   dedupe: require('../middleware/dedupe'),
+  interpolate: require('../middleware/interpolate'),
   localNamingConventions: require('../middleware/localNamingConventions'),
   translate: require('../middleware/translate'),
   renamePlacenames: require('../middleware/renamePlacenames'),
@@ -64,6 +65,7 @@ var postProc = {
  * @param {object} peliasConfig
  */
 function addRoutes(app, peliasConfig) {
+  const esclient = elasticsearch.Client(peliasConfig.esclient);
 
   var base = '/v1/';
 
@@ -71,62 +73,63 @@ function addRoutes(app, peliasConfig) {
 
   var routers = {
     index: createRouter([
-      controllers.mdToHTML(peliasConfig, './public/apiDoc.md')
+      controllers.mdToHTML(peliasConfig.api, './public/apiDoc.md')
     ]),
     attribution: createRouter([
-      controllers.mdToHTML(peliasConfig, './public/attribution.md')
+      controllers.mdToHTML(peliasConfig.api, './public/attribution.md')
     ]),
     search: createRouter([
       sanitizers.search.middleware,
       middleware.calcSize(),
-      middleware.selectLanguage(peliasConfig),
-      // 2nd parameter is `backend` which gets initialized internally
+      middleware.selectLanguage(peliasConfig.api),
       // 3rd parameter is which query module to use, use fallback/geodisambiguation
       //  first, then use original search strategy if first query didn't return anything
-      controllers.search(peliasConfig, undefined, queries.libpostal),
+      controllers.search(peliasConfig.api, esclient, queries.libpostal),
       sanitizers.search_fallback.middleware,
-      controllers.search(peliasConfig, undefined, queries.fallback_to_old_prod),
+      controllers.search(peliasConfig.api, esclient, queries.fallback_to_old_prod),
       postProc.trimByGranularity(),
       postProc.distances('focus.point.'),
       postProc.localNamingConventions(),
-      postProc.confidenceScores(peliasConfig),
-      postProc.matchLanguage(peliasConfig),
+      postProc.confidenceScores(peliasConfig.api),
+      postProc.matchLanguage(peliasConfig.api),
       postProc.dedupe(),
+      postProc.interpolate(),
       postProc.accuracy(),
       postProc.translate(),
       postProc.renamePlacenames(),
       postProc.parseBoundingBox(),
       postProc.normalizeParentIds(),
       postProc.assignLabels(),
-      postProc.geocodeJSON(peliasConfig, base),
+      postProc.geocodeJSON(peliasConfig.api, base),
       postProc.sendJSON
     ]),
     structured: createRouter([
       sanitizers.structured_geocoding.middleware,
       middleware.calcSize(),
-      controllers.search(peliasConfig, undefined, queries.structured_geocoding),
+      controllers.search(peliasConfig.api, esclient, queries.structured_geocoding),
       postProc.trimByGranularityStructured(),
       postProc.distances('focus.point.'),
-      postProc.confidenceScores(peliasConfig),
+      postProc.confidenceScores(peliasConfig.api),
       postProc.confidenceScoresFallback(),
       postProc.dedupe(),
+      postProc.interpolate(),
       postProc.accuracy(),
       postProc.localNamingConventions(),
       postProc.renamePlacenames(),
       postProc.parseBoundingBox(),
       postProc.normalizeParentIds(),
       postProc.assignLabels(),
-      postProc.geocodeJSON(peliasConfig, base),
+      postProc.geocodeJSON(peliasConfig.api, base),
       postProc.sendJSON
     ]),
     autocomplete: createRouter([
       sanitizers.autocomplete.middleware,
-      middleware.selectLanguage(peliasConfig),
-      controllers.search(peliasConfig, null, require('../query/autocomplete')),
+      middleware.selectLanguage(peliasConfig.api),
+      controllers.search(peliasConfig.api, esclient, queries.autocomplete),
       postProc.distances('focus.point.'),
       postProc.localNamingConventions(),
-      postProc.confidenceScores(peliasConfig),
-      postProc.matchLanguage(peliasConfig),
+      postProc.confidenceScores(peliasConfig.api),
+      postProc.matchLanguage(peliasConfig.api),
       postProc.dedupe(),
       postProc.accuracy(),
       postProc.translate(),
@@ -134,14 +137,14 @@ function addRoutes(app, peliasConfig) {
       postProc.parseBoundingBox(),
       postProc.normalizeParentIds(),
       postProc.assignLabels(),
-      postProc.geocodeJSON(peliasConfig, base),
+      postProc.geocodeJSON(peliasConfig.api, base),
       postProc.sendJSON
     ]),
     reverse: createRouter([
       sanitizers.reverse.middleware,
       middleware.calcSize(),
-      middleware.selectLanguage(peliasConfig),
-      controllers.search(peliasConfig, undefined, reverseQuery),
+      middleware.selectLanguage(peliasConfig.api),
+      controllers.search(peliasConfig.api, esclient, queries.reverse),
       postProc.distances('point.'),
       // reverse confidence scoring depends on distance from origin
       //  so it must be calculated first
@@ -154,14 +157,14 @@ function addRoutes(app, peliasConfig) {
       postProc.parseBoundingBox(),
       postProc.normalizeParentIds(),
       postProc.assignLabels(),
-      postProc.geocodeJSON(peliasConfig, base),
+      postProc.geocodeJSON(peliasConfig.api, base),
       postProc.sendJSON
     ]),
     nearby: createRouter([
       sanitizers.nearby.middleware,
       middleware.calcSize(),
-      middleware.selectLanguage(peliasConfig),
-      controllers.search(peliasConfig, undefined, reverseQuery),
+      middleware.selectLanguage(peliasConfig.api),
+      controllers.search(peliasConfig.api, esclient, queries.reverse),
       postProc.distances('point.'),
       // reverse confidence scoring depends on distance from origin
       //  so it must be calculated first
@@ -174,13 +177,13 @@ function addRoutes(app, peliasConfig) {
       postProc.parseBoundingBox(),
       postProc.normalizeParentIds(),
       postProc.assignLabels(),
-      postProc.geocodeJSON(peliasConfig, base),
+      postProc.geocodeJSON(peliasConfig.api, base),
       postProc.sendJSON
     ]),
     place: createRouter([
       sanitizers.place.middleware,
-      middleware.selectLanguage(peliasConfig),
-      controllers.place(peliasConfig),
+      middleware.selectLanguage(peliasConfig.api),
+      controllers.place(peliasConfig.api, esclient),
       postProc.accuracy(),
       postProc.localNamingConventions(),
       postProc.translate(),
@@ -188,7 +191,7 @@ function addRoutes(app, peliasConfig) {
       postProc.parseBoundingBox(),
       postProc.normalizeParentIds(),
       postProc.assignLabels(),
-      postProc.geocodeJSON(peliasConfig, base),
+      postProc.geocodeJSON(peliasConfig.api, base),
       postProc.sendJSON
     ]),
     status: createRouter([

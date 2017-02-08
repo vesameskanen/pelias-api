@@ -1,6 +1,10 @@
-
 var fuzzy = require('fuzzy.js');
-var logger = require('pelias-logger').get('api:fuzzy');
+
+// fuzzy.js score range is not normalized but depends on string length as computed below
+// NOTE: recheck whenever updating fuzzy.js version!
+function getMaxScore(len) {
+  return 3*(len - 1) + 1;
+}
 
 function normalizeName(text) {
   return text.toLowerCase();
@@ -24,18 +28,24 @@ function _fuzzyMatch(text1, text2) {
   var len1 = text1.length;
   var len2 = text2.length;
 
-  var score = fuzzy(text1, text2).score;
-  var score2;
+  var fscore = fuzzy(text1, text2).score;
+  var score = fscore/getMaxScore(len1); // normalized 0 .. 1 score
+  var score2; // alternative scoring by direct substring match
 
-  if (len1>len2) {
-    score = score/fuzzy(text1, text1).score;
+  if (len1>=len2) {
     if(text1.indexOf(text2)!==-1) {
       score2 = len2/len1;
     }
   } else {
-    score = score/fuzzy(text2, text2).score;
-    if(text2.indexOf(text1)!==-1) {
-      score2 = len1/len2;
+    // do not punish from missing tail part too much ...
+    var minScore = fscore/getMaxScore(len1 + 1);
+    var key = len1/len2;
+    // Interpolate final score. The more missing chars, the lower the score
+    score = key*score + (1-key)*minScore;
+
+    var subIndex = text2.indexOf(text1);
+    if(subIndex !== -1) {
+      score2 = len1/(len2 + subIndex); // favor match at start
     }
   }
   if (score2 && score2>score) {

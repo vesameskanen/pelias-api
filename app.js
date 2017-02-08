@@ -1,11 +1,10 @@
 
 var app = require('express')();
 
-var peliasConfig = require( 'pelias-config' ).generate().api;
+var peliasConfig = require( 'pelias-config' ).generate(require('./schema'));
 
-
-if( peliasConfig.accessLog ){
-  app.use( require( './middleware/access_log' ).createAccessLogger( peliasConfig.accessLog ) );
+if( peliasConfig.api.accessLog ){
+  app.use( require( './middleware/access_log' ).createAccessLogger( peliasConfig.api.accessLog ) );
 }
 
 /** ----------------------- pre-processing-middleware ----------------------- **/
@@ -18,7 +17,7 @@ app.use( require('./middleware/jsonp') );
 /** ----------------------- routes ----------------------- **/
 
 var legacy = require('./routes/legacy');
-legacy.addRoutes(app, peliasConfig);
+legacy.addRoutes(app, peliasConfig.api);
 
 var v1 = require('./routes/v1');
 v1.addRoutes(app, peliasConfig);
