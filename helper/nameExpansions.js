@@ -36,7 +36,7 @@ function expandByAddress(docs) {
     if(doc.street) {
       var addr = doc.street;
       if(doc.housenumber) {
-        if(_.includes(flipNumberAndStreetCountries, doc.country_a[0])) {
+        if(!doc.country_a || !doc.country_a[0] || _.includes(flipNumberAndStreetCountries, doc.country_a[0])) {
           addr = addr + ' ' + doc.housenumber;
         } else {
           addr = doc.housenumber + ' ' + addr;
