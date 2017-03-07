@@ -26,7 +26,6 @@ function translate(req, res, next) {
   var lang, matched;
   if (req.clean) {
     lang = req.clean.lang;
-    matched =  req.clean.matched;
   }
 
   if( lang && translations[lang] ) {
@@ -42,18 +41,14 @@ function translate(req, res, next) {
   }
 
   _.forEach(res.data, function(place) {
-    translateName(place, lang, matched);
+    translateName(place, lang);
   });
 
   next();
 }
 
-function translateName(place, lang, matched) {
+function translateName(place, lang) {
   if( place.name ) {
-    if( matched && place.name[matched] ) {
-      // store also name version which gave best match
-      place.altName = place.name[matched];
-    }
     if( place.name[lang] ) {
       place.name = place.name[lang];
     } else if (place.name.default) { // fallback
