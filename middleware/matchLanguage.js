@@ -1,4 +1,3 @@
-
 /**
  *  Modify language preference by actual search results.
  *
@@ -16,6 +15,7 @@
  */
 
 var fuzzy = require('../helper/fuzzyMatch');
+var _ = require('lodash');
 var logger = require('pelias-logger').get('api');
 var languages = ['default'];
 var languageMap = {};
@@ -35,6 +35,12 @@ function setup(peliasConfig) {
 function removeNumbers(val) {
   return val.replace(/[0-9]/g, '').trim();
 }
+
+function matchName(text, name) { // compute matching score
+  var name2 = removeNumbers(name);
+  return fuzzy.match(text, name2);
+}
+
 
 function matchLanguage(req, res, next) {
 
@@ -64,49 +70,58 @@ function matchLanguage(req, res, next) {
   // fix street/number order problem by stripping the number part
   name = removeNumbers(name);
 
-  // match name versions of 1st search result with the searched name
-  var names = res.data[0].name; // use 1st hit from ES = best match so far
+  var bestLang, bestScore;
 
-  var bestLang;
-  var bestScore = -1;
+  var matchDoc =  function(doc) {
+    var names = doc.name;
+    var _bestLang;
+    var _bestScore = -1;
 
-  var matchLang = function(lang) { // compute matching score
-    var name2 = removeNumbers(names[lang]);
-    return fuzzy.match(name, name2);
-  };
+    var updateLocalBest = function(lang, score) {
+      _bestScore = score;
+      _bestLang = lang;
+    };
 
-  var updateBest = function(lang, score) {
-      bestScore = score;
-      bestLang = lang;
-  };
-
-  for(var lang in names) {
-    if(languages.indexOf(lang)===-1) {
-      continue; // accept only configured languages
-    }
-    var score = matchLang(lang);
-    if (score > bestScore ) {
-      updateBest(lang, score);
-    }
-    else if (score === bestScore && bestLang !== currentLang) {
-      // explicit lang parameter has 2nd highest priority
-      if (lang === currentLang) {
-        updateBest(lang, score);
+    for(var lang in names) {
+      if(languages.indexOf(lang)===-1) {
+        continue; // accept only configured languages
       }
-      else {
-        // judge by configured language list priority
-        var i1 = languages.indexOf(lang);
-        var i2 = languages.indexOf(bestLang);
-        if (i1 !== -1 && (i2 === -1 ||  i1 < i2)) {
-          updateBest(lang, score);
+      var score = matchName(name, names[lang]);
+      if (score > _bestScore ) {
+        updateLocalBest(lang, score);
+      }
+      else if (score === _bestScore && _bestLang !== currentLang) {
+        // explicit lang parameter has 2nd highest priority
+        if (lang === currentLang) {
+          updateLocalBest(lang, score);
+        }
+        else {
+          // judge by configured language list priority
+          var i1 = languages.indexOf(lang);
+          var i2 = languages.indexOf(_bestLang);
+          if (i1 !== -1 && (i2 === -1 ||  i1 < i2)) {
+            updateLocalBest(lang, score);
+          }
         }
       }
     }
-  }
+    if (_bestLang) {
+      doc.altName = names[_bestLang];
+
+      if(!bestLang) {
+        // take global best from 1st doc which has best conf. scores
+        bestScore = _bestScore;
+        bestLang = _bestLang;
+      }
+    }
+  };
+
+  // process all docs to find best matching alt name
+  _.forEach(res.data, matchDoc);
+
   // change lang if best hit is good enough
   if (bestLang && bestScore > languageMatchThreshold) {
     if (languageMap[bestLang]) {
-      req.clean.matched = bestLang;
       bestLang = languageMap[bestLang]; // map fake languages such as 'local' to real language
     }
     req.clean.lang = bestLang;
