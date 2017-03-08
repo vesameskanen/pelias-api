@@ -16,6 +16,33 @@ function setup() {
   return translate;
 }
 
+function translateName(place, lang) {
+  if( place.name ) {
+    if( place.name[lang] ) {
+      place.name = place.name[lang];
+    } else if (place.name.default) { // fallback
+      place.name = place.name.default;
+    }
+  }
+}
+
+function translateProperties(place, key, names) {
+  if( place[key] !== null ) {
+    var name;
+    if (place[key] instanceof Array) {
+      name = place[key][0];
+      if (name && names[name]) {
+        place[key][0] = names[name]; // do the translation
+      }
+    } else {
+      name = place[key];
+      if (name && names[name]) {
+        place[key] = names[name];
+      }
+    }
+  }
+}
+
 function translate(req, res, next) {
 
   // do nothing if no result data set
@@ -45,34 +72,6 @@ function translate(req, res, next) {
   });
 
   next();
-}
-
-function translateName(place, lang) {
-  if( place.name ) {
-    if( place.name[lang] ) {
-      place.name = place.name[lang];
-    } else if (place.name.default) { // fallback
-      place.name = place.name.default;
-    }
-  }
-}
-
-
-function translateProperties(place, key, names) {
-  if( place[key] !== null ) {
-    var name;
-    if (place[key] instanceof Array) {
-      name = place[key][0];
-      if (name && names[name]) {
-        place[key][0] = names[name]; // do the translation
-      }
-    } else {
-      name = place[key];
-      if (name && names[name]) {
-        place[key] = names[name];
-      }
-    }
-  }
 }
 
 module.exports = setup;
