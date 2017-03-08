@@ -100,6 +100,7 @@
       },
       "labelSchemas": {
         "FIN": {
+          "address": { "fields": [["street", "housenumber"], "neighbourhood"], "matchType": "first" },
           "local": { "fields": ["localadmin", "locality"], "matchType": "best" }
         }
       }
