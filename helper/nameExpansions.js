@@ -294,7 +294,7 @@ if (localization && localization.expansions) { // configure custom list
     expansions.push(expansionLib(expansion)); // map name to func
   });
 } else {
-  expansions = [expandByAddress, expandByAdmin, expandByCategory, expandByLocation];
+  expansions = [expandByCategory, expandByLocation];
 }
 
 module.exports = expansions;

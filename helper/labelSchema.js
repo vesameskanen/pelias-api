@@ -23,6 +23,13 @@ if (api && api.localization && api.localization.labelSchemas) {
 
 module.exports = schemas;
 
+function baseVal(val) {
+  if (Array.isArray(val)) {
+    return val[0];
+  }
+  return val;
+}
+
 // find the first field of record that has a non-empty value that's not already in labelParts
 function getFirstProperty(fields, matchType) {
   return function(record, req) {
@@ -35,10 +42,21 @@ function getFirstProperty(fields, matchType) {
     var bestScore = -1;
     var bestField;
     for (var i = 0; i < fields.length; i++) {
-      var fieldValue = record[fields[i]];
-
-      if (Array.isArray(fieldValue)) {
-        fieldValue = fieldValue[0];
+      var field = fields[i];
+      var fieldValue;
+      if (Array.isArray(field)) { // chain multi parts
+        var parts = [];
+        for (var j = 0; j < field.length; j++) {
+          var val = baseVal(record[field[j]]);
+          if (!_.isEmpty(val)) {
+            parts.push(val);
+          }
+        }
+        if(parts.length>0) {
+          fieldValue = parts.join(' ');
+        }
+      } else {
+        fieldValue = baseVal(record[field]);
       }
       if (!_.isEmpty(fieldValue)) {
         if(matchRegions) {
