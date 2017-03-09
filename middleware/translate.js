@@ -16,44 +16,8 @@ function setup() {
   return translate;
 }
 
-function translate(req, res, next) {
-
-  // do nothing if no result data set
-  if (!res || !res.data) {
-    return next();
-  }
-
-  var lang, matched;
-  if (req.clean) {
-    lang = req.clean.lang;
-    matched =  req.clean.matched;
-  }
-
-  if( lang && translations[lang] ) {
-    _.forEach(translations[lang], function(names, key) {
-      _.forEach(res.data, function(place) {
-        translateProperties(place, key, names);
-        translateProperties(place.parent, key, names);
-        if(place.address_parts) {
-          translateProperties(place.address_parts, key, names);
-        }
-      });
-    });
-  }
-
-  _.forEach(res.data, function(place) {
-    translateName(place, lang, matched);
-  });
-
-  next();
-}
-
-function translateName(place, lang, matched) {
+function translateName(place, lang) {
   if( place.name ) {
-    if( matched && place.name[matched] ) {
-      // store also name version which gave best match
-      place.altName = place.name[matched];
-    }
     if( place.name[lang] ) {
       place.name = place.name[lang];
     } else if (place.name.default) { // fallback
@@ -61,7 +25,6 @@ function translateName(place, lang, matched) {
     }
   }
 }
-
 
 function translateProperties(place, key, names) {
   if( place[key] !== null ) {
@@ -78,6 +41,37 @@ function translateProperties(place, key, names) {
       }
     }
   }
+}
+
+function translate(req, res, next) {
+
+  // do nothing if no result data set
+  if (!res || !res.data) {
+    return next();
+  }
+
+  var lang, matched;
+  if (req.clean) {
+    lang = req.clean.lang;
+  }
+
+  if( lang && translations[lang] ) {
+    _.forEach(translations[lang], function(names, key) {
+      _.forEach(res.data, function(place) {
+        translateProperties(place, key, names);
+        translateProperties(place.parent, key, names);
+        if(place.address_parts) {
+          translateProperties(place.address_parts, key, names);
+        }
+      });
+    });
+  }
+
+  _.forEach(res.data, function(place) {
+    translateName(place, lang);
+  });
+
+  next();
 }
 
 module.exports = setup;
