@@ -96,7 +96,8 @@
       "translations": "/opt/pelias/api/translations.json",
       "equalCharMap": {
         "é":"e",
-        "'":""
+        "'":"",
+        "-":" "
       },
       "labelSchemas": {
         "FIN": {
