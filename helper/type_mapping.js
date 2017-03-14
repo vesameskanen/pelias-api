@@ -53,7 +53,7 @@ var LAYERS_BY_SOURCE = {
   'locality','borough', 'neighbourhood', 'venue' ],
  whosonfirst: [ 'continent', 'country', 'dependency', 'macroregion', 'region',
    'locality', 'localadmin', 'macrocounty', 'county', 'macrohood', 'borough',
-   'neighbourhood', 'microhood', 'disputed', 'venue'],
+   'neighbourhood', 'microhood', 'disputed', 'venue', 'postalcode'],
   nlsfi: [ 'venue', 'stop', 'station' ],
   gtfs: [ 'stop', 'station' ]
 };
@@ -66,7 +66,7 @@ var LAYERS_BY_SOURCE = {
 var LAYER_ALIASES = {
   'coarse': [ 'continent', 'country', 'dependency', 'macroregion', 'region',
    'locality', 'localadmin', 'macrocounty', 'county', 'macrohood', 'borough',
-   'neighbourhood', 'microhood', 'disputed']
+   'neighbourhood', 'microhood', 'disputed', 'postalcode' ]
 };
 
 // create a list of all layers by combining each entry from LAYERS_BY_SOURCE

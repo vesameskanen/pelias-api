@@ -1,6 +1,4 @@
-
 // test creating a custom query using pelias config file
-var text_analyzer = require('pelias-text-analyzer');
 var proxyquire = require('proxyquire');
 
 var customConfig = {
@@ -35,10 +33,18 @@ module.exports.tests.query = function(test, common) {
   test('valid multiphrase query with a full valid address', function(t) {
     var address = '123 main st new york ny 10010 US';
     var query = generate({ text: address,
-      layers: [ 'address', 'venue', 'country', 'region', 'county', 'neighbourhood', 'locality', 'localadmin' ],
+      layers: [ 'address', 'venue', 'country', 'region', 'county', 'neighbourhood', 'locality', 'localadmin', ],
       querySize: 10,
-      parsed_text: text_analyzer.parse(address),
+      parsed_text: {
+        number: '123',
+        street: 'main st',
+        postalcode: '10010',
+        state: 'NY',
+        country: 'USA',
+        regions:['new york']
+      },
     });
+
     var querystr = JSON.stringify( query );
     var compiled = JSON.parse( querystr );
 
