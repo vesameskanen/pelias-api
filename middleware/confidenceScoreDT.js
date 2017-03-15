@@ -242,14 +242,24 @@ function computeConfidenceScore(req, hit) {
  *
  * @param {string} text
  * @param {object} property with language versions
+ * @param {striNumbers} remove numbers from examined property
+ * @param {object} optional parent with admin parts to variate name
  * @returns {bool}
  */
 
-function checkLanguageProperty(text, propertyObject, stripNumbers) {
+function checkLanguageProperty(text, propertyObject, stripNumbers, tryGenitive) {
   var bestScore = 0;
   var bestName;
 
   text = normalize(text);
+
+  var checkNewBest = function(text, text2) {
+    var score = fuzzy.match(text, text2);
+    if (score >= bestScore ) {
+      bestScore = score;
+      bestName = propertyObject[lang];
+    }
+  };
 
   for (var lang in propertyObject) {
     if (languages.indexOf(lang) === -1) {
@@ -260,11 +270,15 @@ function checkLanguageProperty(text, propertyObject, stripNumbers) {
     if(stripNumbers) {
       text2 = text2.replace(/[0-9]/g, '').trim();
     }
-    score = fuzzy.match(text, text2);
+    checkNewBest(text, text2);
 
-    if (score >= bestScore ) {
-      bestScore = score;
-      bestName = propertyObject[lang];
+    if (tryGenitive) {
+      for(var key in adminWeights) {
+        var admin = tryGenitive[key];
+        if(admin && admin !== '' && text2.indexof(admin) !== -1) {
+          checkNewBest(text, admin + ' ' + text2);
+        }
+      }
     }
   }
   logger.debug('name confidence', bestScore, text, bestName);
@@ -276,22 +290,36 @@ function checkLanguageProperty(text, propertyObject, stripNumbers) {
 /**
  * Compare text string or name component of parsed_text against
  * default name in result
- * Note: consider also street here as it often stores searched name
  *
  * @param {string} text
- * @param {object|undefined} parsed_text
+ * @param {object|undefined} parsedText
  * @param {object} hit
  * @returns {number}
  */
-function checkName(text, parsed_text, hit) {
+function checkName(text, parsedText, hit) {
 
-  // parsed_text name should take precedence if available since it's the cleaner name property
-  if (check.assigned(parsed_text) && check.assigned(parsed_text.name)) {
-    return(checkLanguageProperty(parsed_text.name, hit.name));
+  // parsedText name should take precedence if available since it's the cleaner name property
+  if (check.assigned(parsedText) && check.assigned(parsedText.name)) {
+    var name = parsedText.name;
+    var bestScore = checkLanguageProperty(name, hit.name, false, hit.parent);
+
+    if (parsedText.regions) {
+      // try approximated genitive form : tuomikirkko, tampere -> tampere tuomiokirkko
+      // exact genitive form is hard e.g. in finnish lang: turku->turun, Lieto->liedon ...
+      parsedText.regions.forEach(function(region) {
+        if( name.indexOf(region) !== -1 ) { // not already included
+          var score = checkLanguageProperty(region + ' ' + name, hit.name);
+          if (score > bestScore) {
+            bestScore = score;
+          }
+        }
+      });
+    }
+    return(bestScore);
   }
 
-  // if no parsed_text check the full unparsed text value
-  return(checkLanguageProperty(text, hit.name));
+  // if no parsedText check the full unparsed text value
+  return(checkLanguageProperty(text, hit.name, false, hit.parent));
 }
 
 
