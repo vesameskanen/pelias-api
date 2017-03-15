@@ -25,7 +25,7 @@
     "indexName": "pelias",
     "version": "1.0",
     "textAnalyzer": "libpostal",
-    "sizePadding": 6,
+    "sizePadding": 10,
     "minConfidence": 0.2,
     "relativeMinConfidence": 0.4,
     "languageMatchThreshold": 0.4,
