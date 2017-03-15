@@ -420,6 +420,7 @@ function checkAdmin(values, hit) {
 
   values.forEach(function(value) {
     var best=0, weight = 1;
+    var nvalue = normalize(value);
 
     // loop trough configured properties to find best match
     for(var key in adminWeights) {
@@ -431,9 +432,9 @@ function checkAdmin(values, hit) {
           for(var i in prop) {
             nProp.push(normalize(prop[i]));
           }
-          match = fuzzy.matchArray(normalize(value), nProp);
+          match = fuzzy.matchArray(nvalue, nProp);
         } else {
-          match = fuzzy.match(normalize(value), normalize(prop));
+          match = fuzzy.match(nvalue, normalize(prop));
         }
         if(match>best) {
           best = match;
