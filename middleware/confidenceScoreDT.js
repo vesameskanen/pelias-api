@@ -76,12 +76,17 @@ function setup(peliasConfig) {
 
 // map chars which are considered equal in scoring
 function normalize(s) {
-  for(var c in equalCharMap) {
-    s = s.replace(equalRegex[c], equalCharMap[c]);
+  if(s) {
+    for(var c in equalCharMap) {
+      s = s.replace(equalRegex[c], equalCharMap[c]);
+    }
   }
   return s;
 }
 
+function removeNumbers(val) {
+  return val.replace(/[0-9]/g, '').trim();
+}
 
 function compareProperty(p1, p2) {
   if (Array.isArray(p1)) {
@@ -238,18 +243,19 @@ function computeConfidenceScore(req, hit) {
 
 
 /**
- * Compare text string against configuration defined language versions of a property
+ * Compare text string against configuration defined language versions of the name
  *
  * @param {string} text
- * @param {object} property with language versions
- * @param {striNumbers} remove numbers from examined property
- * @param {object} optional parent with admin parts to variate name
+ * @param {object} document with name and other props
+ * @param {bool} remove numbers from examined property
+ * @param {bool} variate names with admin parts & street
  * @returns {bool}
  */
 
-function checkLanguageProperty(text, propertyObject, stripNumbers, tryGenitive) {
+function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
   var bestScore = 0;
   var bestName;
+  var name = doc.name;
 
   text = normalize(text);
 
@@ -257,27 +263,34 @@ function checkLanguageProperty(text, propertyObject, stripNumbers, tryGenitive) 
     var score = fuzzy.match(text, text2);
     if (score >= bestScore ) {
       bestScore = score;
-      bestName = propertyObject[lang];
+      bestName = text2;
     }
   };
 
-  for (var lang in propertyObject) {
+  for (var lang in name) {
     if (languages.indexOf(lang) === -1) {
       continue;
     }
     var score;
-    var text2 = normalize(propertyObject[lang]);
+    var text2 = normalize(name[lang]);
     if(stripNumbers) {
-      text2 = text2.replace(/[0-9]/g, '').trim();
+      text2 = removeNumbers(text2);
     }
     checkNewBest(text, text2);
 
     if (tryGenitive) {
+      // prefix with parent admins to catch cases like 'kontulan r-kioski'
+      var parent = doc.parent;
       for(var key in adminWeights) {
-        var admin = tryGenitive[key];
-        if(admin && admin !== '' && text2.indexof(admin) !== -1) {
+        var admin = normalize(parent[key]);
+        if(admin && text2.indexof(admin) !== -1) {
           checkNewBest(text, admin + ' ' + text2);
         }
+      }
+      // try also street: 'helsinginkadun r-kioski'
+      var street = normalize(doc.street);
+      if(street && text2.indexof(street) !== -1) {
+        checkNewBest(text, street + ' ' + text2);
       }
     }
   }
@@ -301,14 +314,15 @@ function checkName(text, parsedText, hit) {
   // parsedText name should take precedence if available since it's the cleaner name property
   if (check.assigned(parsedText) && check.assigned(parsedText.name)) {
     var name = parsedText.name;
-    var bestScore = checkLanguageProperty(name, hit.name, false, hit.parent);
+      var bestScore = checkLanguageNames(name, hit, false, true);
 
     if (parsedText.regions) {
       // try approximated genitive form : tuomikirkko, tampere -> tampere tuomiokirkko
-      // exact genitive form is hard e.g. in finnish lang: turku->turun, Lieto->liedon ...
+      // exact genitive form is hard e.g. in finnish lang: turku->turun, lieto->liedon ...
       parsedText.regions.forEach(function(region) {
+        region = normalize(removeNumbers(region));
         if( name.indexOf(region) !== -1 ) { // not already included
-          var score = checkLanguageProperty(region + ' ' + name, hit.name);
+          var score = checkLanguageNames(region + ' ' + name, hit);
           if (score > bestScore) {
             bestScore = score;
           }
@@ -319,7 +333,7 @@ function checkName(text, parsedText, hit) {
   }
 
   // if no parsedText check the full unparsed text value
-  return(checkLanguageProperty(text, hit.name, false, hit.parent));
+  return(checkLanguageNames(text, hit, false, true));
 }
 
 
@@ -392,7 +406,7 @@ function checkAddressPart(text, hit, key) {
   // special case: proper version can be stored in the name
   // we need this because street name currently stores only one language
   if(key==='street' && hit.name) {
-    var _score = checkLanguageProperty(text[key], hit.name, true);
+      var _score = checkLanguageNames(text[key], hit, true, false);
     if(_score>score) {
       score = _score;
     }
