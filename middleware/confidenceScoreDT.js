@@ -255,43 +255,56 @@ function computeConfidenceScore(req, hit) {
 function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
   var bestScore = 0;
   var bestName;
-  var name = doc.name;
+  var names = doc.name;
 
   text = normalize(text);
 
-  var checkNewBest = function(text, text2) {
-    var score = fuzzy.match(text, text2);
+  var checkNewBest = function(name) {
+    var score = fuzzy.match(text, name);
+    logger.debug('######', text, '|', name, score);
     if (score >= bestScore ) {
       bestScore = score;
-      bestName = text2;
+      bestName = name;
     }
   };
 
-  for (var lang in name) {
+  var checkAdminName = function(admin, name) {
+    admin = normalize(admin);
+    if(admin && name.indexOf(admin) === -1) {
+      checkNewBest(admin + ' ' + name);
+    }
+  };
+
+  var checkAdminNames = function(admins, name) {
+    admins.forEach(function(admin) {
+      checkAdminName(admin, name);
+    });
+  };
+
+  for (var lang in names) {
     if (languages.indexOf(lang) === -1) {
       continue;
     }
     var score;
-    var text2 = normalize(name[lang]);
+    var name = normalize(names[lang]);
     if(stripNumbers) {
-      text2 = removeNumbers(text2);
+      name = removeNumbers(name);
     }
-    checkNewBest(text, text2);
+    checkNewBest(name);
 
-    if (tryGenitive) {
+    if (tryGenitive && text.length > 2 + name.length) { // Shortest admin prefix is 'ii '
       // prefix with parent admins to catch cases like 'kontulan r-kioski'
       var parent = doc.parent;
       for(var key in adminWeights) {
-        var admin = normalize(parent[key]);
-        if(admin && text2.indexof(admin) !== -1) {
-          checkNewBest(text, admin + ' ' + text2);
+        var admins = parent[key];
+        if (Array.isArray(admins)) {
+          checkAdminNames(admins, name);
+        } else {
+          checkAdminName(admins, name);
         }
       }
       // try also street: 'helsinginkadun r-kioski'
-      var street = normalize(doc.street);
-      if(street && text2.indexof(street) !== -1) {
-        checkNewBest(text, street + ' ' + text2);
-      }
+      checkAdminName(doc.street, name);
     }
   }
   logger.debug('name confidence', bestScore, text, bestName);
@@ -321,7 +334,7 @@ function checkName(text, parsedText, hit) {
       // exact genitive form is hard e.g. in finnish lang: turku->turun, lieto->liedon ...
       parsedText.regions.forEach(function(region) {
         region = normalize(removeNumbers(region));
-        if( name.indexOf(region) !== -1 ) { // not already included
+        if( name.indexOf(region) === -1 ) { // not already included
           var score = checkLanguageNames(region + ' ' + name, hit);
           if (score > bestScore) {
             bestScore = score;
