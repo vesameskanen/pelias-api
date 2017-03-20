@@ -47,6 +47,10 @@ function getSchema(country_a) {
 
 }
 
+function normalize(str) {
+  return str.toLowerCase().replace(/ /g, '');
+}
+
 // helper function that sets a default label
 function getInitialLabel(record) {
 
@@ -58,7 +62,8 @@ function getInitialLabel(record) {
     return [record.expandedName];
   }
 
-  if (record.altName && record.altName !== record.name && record.name.indexOf(record.altName)===-1) {
+  if (record.altName && record.altName !== record.name &&
+    normalize(record.name).indexOf(normalize(record.altName))===-1) {
     return [record.name +' ('+ record.altName +')'];
   }
 
