@@ -150,7 +150,11 @@ function generateQuery( clean ){
 }
 
 function getQuery(vs) {
-  if (USE_FALLBACK_QUERY && (hasStreet(vs) || isCityStateOnlyWithOptionalCountry(vs) || isCityCountryOnly(vs))) {
+  if (USE_FALLBACK_QUERY && (
+      hasStreet(vs) ||
+      isCityStateOnlyWithOptionalCountry(vs) ||
+      isCityCountryOnly(vs) ||
+      isPostalCodeOnly(vs))) {
     return {
       type: 'fallback',
       body: fallbackQuery.render(vs)
@@ -191,6 +195,20 @@ function isCityCountryOnly(vs) {
 
   return allowedFields.every(isSet) &&
         !disallowedFields.some(isSet);
+
+}
+
+function isPostalCodeOnly(vs) {
+  var isSet = (layer) => {
+    return vs.isset(`input:${layer}`);
+  };
+
+  var allowedFields = ['postcode'];
+  var disallowedFields = ['query', 'category', 'housenumber', 'street',
+    'neighbourhood', 'borough', 'county', 'region', 'country'];
+
+  return allowedFields.every(isSet) &&
+    !disallowedFields.some(isSet);
 
 }
 

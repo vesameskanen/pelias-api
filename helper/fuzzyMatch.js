@@ -10,6 +10,10 @@ function normalizeName(text) {
   return text.toLowerCase();
 }
 
+function removeSpaces(val) {
+  return val.replace(/ /g, '');
+}
+
 function removeNumbers(val) {
   return val.replace(/[0-9]/g, '').trim();
 }
@@ -25,6 +29,10 @@ function removeNumbers(val) {
 */
 
 function _fuzzyMatch(text1, text2) {
+  // at the lowest match level, consider spaces insignificant. east west pub = eastwestpub
+  text1 = removeSpaces(text1);
+  text2 = removeSpaces(text2);
+
   var len1 = text1.length;
   var len2 = text2.length;
 
