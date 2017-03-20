@@ -324,12 +324,11 @@ function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
  */
 function checkName(text, parsedText, hit) {
 
-  var isVenue = hit.layer === 'venue' || hit.layer === 'stop' || hit.layer === 'station';
-
   // parsedText name should take precedence if available since it's the cleaner name property
   if (check.assigned(parsedText) && check.assigned(parsedText.name)) {
     var name = parsedText.name;
-      var bestScore = checkLanguageNames(name, hit, false, isVenue);
+    var isVenue = hit.layer === 'venue' || hit.layer === 'stop' || hit.layer === 'station';
+    var bestScore = checkLanguageNames(name, hit, false, isVenue);
 
     if (parsedText.regions && isVenue) {
       // try approximated genitive form : tuomikirkko, tampere -> tampere tuomiokirkko
