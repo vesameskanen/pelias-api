@@ -53,11 +53,21 @@ function restoreParsed(parsed, text) {
 }
 
 
+function addAdmin(parsedText, admin) {
+  if (parsedText.regions && parsedText.regions.indexOf(admin) > -1) {
+    return; // nop
+  }
+  parsedText.regions = parsedText.regions || [];
+  parsedText.regions.push(admin);
+  parsedText.admin_parts = (parsedText.admin_parts ? parsedText.admin_parts+', '+admin : admin);
+}
+
 function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
 
   // if 'query' part is set, libpostal has probably failed in parsing
   // NOTE!! This may change when libpostal parsing improves
   // try reqularly using libpostal parsing also when query field is set.
+
   if(check.undefined(fromLibpostal.query)) {
 
     if(check.assigned(fromLibpostal.street)) {
@@ -72,10 +82,15 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
 
       if(city) {
         parsedText.city = city;
-        parsedText.regions = parsedText.regions || [];
-        if(parsedText.regions.indexOf(city)===-1) {
-          parsedText.regions.push(city);
-          parsedText.admin_parts = (parsedText.admin_parts?parsedText.admin_parts+', '+city:city);
+        if(parsedText.name && parsedText.name !== city) {
+          addAdmin(parsedText, city);
+        } else {
+          // if only a single item is parsed, don't duplicate it to 2 search slots
+          // why? Because our data does not include small admin areas such as villages
+          // and admin match requirement would produce bad scores
+          // basically this is a bug in libpostal parsing. Such small palces shoudl not
+          // get parsed as city
+          parsedText.name = city;
         }
       }
     }
@@ -83,11 +98,12 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
     if(check.assigned(fromLibpostal.neighbourhood)) {
       var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
 
-      if(nbrh && parsedText.name !== nbrh) { // don't add same string to both name and admin parts
-        parsedText.regions = parsedText.regions || [];
-        if(parsedText.regions.indexOf(nbrh)===-1) {
-          parsedText.regions.push(nbrh);
-          parsedText.admin_parts = (parsedText.admin_parts?parsedText.admin_parts+', '+nbrh:nbrh);
+      if(nbrh) {
+        parsedText.neighbourhood = nbrh;
+        if(parsedText.name && parsedText.name !== nbrh) {
+          addAdmin(parsedText, nbrh);
+        } else {
+          parsedText.name = nbrh;
         }
       }
     }
