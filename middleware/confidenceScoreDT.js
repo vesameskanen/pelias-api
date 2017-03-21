@@ -12,6 +12,7 @@ var languages = ['default'];
 var equalCharMap = {}, equalRegex = {};
 var adminWeights;
 var minConfidence=0, relativeMinConfidence;
+var genitiveThreshold = 0.4;
 
 // default configuration for address confidence check
 var confidenceAddressParts = {
@@ -266,6 +267,7 @@ function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
       bestScore = score;
       bestName = name;
     }
+    return score;
   };
 
   var checkAdminName = function(admin, name) {
@@ -285,14 +287,14 @@ function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
     if (languages.indexOf(lang) === -1) {
       continue;
     }
-    var score;
     var name = normalize(names[lang]);
     if(stripNumbers) {
       name = removeNumbers(name);
     }
-    checkNewBest(name);
+    var score = checkNewBest(name);
 
-    if (tryGenitive && text.length > 2 + name.length) { // Shortest admin prefix is 'ii '
+    if (tryGenitive && score > genitiveThreshold && // don't prefix unless base match is OK
+        text.length > 2 + name.length ) { // Shortest admin prefix is 'ii '
       // prefix with parent admins to catch cases like 'kontulan r-kioski'
       var parent = doc.parent;
       for(var key in adminWeights) {
@@ -330,7 +332,7 @@ function checkName(text, parsedText, hit) {
     var isVenue = hit.layer === 'venue' || hit.layer === 'stop' || hit.layer === 'station';
     var bestScore = checkLanguageNames(name, hit, false, isVenue);
 
-    if (parsedText.regions && isVenue) {
+    if (parsedText.regions && isVenue && bestScore > genitiveThreshold) {
       // try approximated genitive form : tuomikirkko, tampere -> tampere tuomiokirkko
       // exact genitive form is hard e.g. in finnish lang: turku->turun, lieto->liedon ...
       parsedText.regions.forEach(function(region) {
