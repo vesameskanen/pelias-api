@@ -64,6 +64,11 @@ function addAdmin(parsedText, admin) {
 
 function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
 
+  // validate street number
+  if(check.assigned(fromLibpostal.number) && streetNumberValidator(fromLibpostal.number)) {
+    parsedText.number = fromLibpostal.number;
+  }
+
   // if 'query' part is set, libpostal has probably failed in parsing
   // NOTE!! This may change when libpostal parsing improves
   // try reqularly using libpostal parsing also when query field is set.
@@ -73,7 +78,13 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
     if(check.assigned(fromLibpostal.street)) {
       var street = restoreParsed(fromLibpostal.street, text);
       if(street) {
-        parsedText.street = street;
+        if((!parsedText.name || parsedText.name.toLowerCase()===street) && !parsedText.number) {
+          // plain parsed street is suspicious as Libpostal often maps venue name to street
+          // better to search it via name
+          parsedText.name = street;
+        } else {
+          parsedText.street = street;
+        }
       }
     }
 
@@ -107,10 +118,6 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
         }
       }
     }
-  }
-  // validate street number
-  if(check.assigned(fromLibpostal.number) && streetNumberValidator(fromLibpostal.number)) {
-    parsedText.number = fromLibpostal.number;
   }
 
   // validate postalcode
