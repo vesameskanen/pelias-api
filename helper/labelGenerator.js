@@ -11,7 +11,10 @@ module.exports = function( record, req ){
   // iterate the schema
   for (var field in schema) {
     var valueFunction = schema[field];
-    labelParts.push(valueFunction(record, req));
+    var value = valueFunction(record, req);
+    if(value) {
+      labelParts.push(value);
+    }
   }
 
   // retain only things that are truthy

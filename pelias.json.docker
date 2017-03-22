@@ -1,4 +1,4 @@
-{
+g{
   "esclient": {
     "apiVersion": "2.3",
     "keepAlive": true,
@@ -101,7 +101,7 @@
       },
       "labelSchemas": {
         "FIN": {
-          "address": { "fields": [["street", "housenumber"], "neighbourhood"], "matchType": "first" },
+          "address": { "fields": [["street", "housenumber"], "neighbourhood"], "matchType": "first", "targets": ["venue", "stop", "station"] },
           "local": { "fields": ["localadmin", "locality"], "matchType": "best" }
         }
       }
