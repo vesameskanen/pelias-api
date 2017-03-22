@@ -28,11 +28,10 @@ function dedupeNameAndFirstLabelElement(labelParts) {
     // first, dedupe the name and 1st label array elements
     //  this is used to ensure that the `name` and first admin hierarchy elements aren't repeated
     //  eg - `["Lancaster", "Lancaster", "PA", "United States"]` -> `["Lancaster", "PA", "United States"]`
-    var deduped = _.uniq([labelParts.shift(), labelParts.shift()]);
 
-    // second, unshift the deduped parts back onto the labelParts
-    labelParts.unshift.apply(labelParts, deduped);
-
+    if (labelParts[0].toLowerCase() === labelParts[1].toLowerCase()) {
+      labelParts.splice(1, 1);
+    }
   }
 
   return labelParts;
