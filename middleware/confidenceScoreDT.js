@@ -450,11 +450,11 @@ function checkAdmin(values, hit) {
 
   values.forEach(function(value) {
     var best=0, weight = 1;
-    var nvalue = normalize(value);
+    var nvalue = normalize(removeNumbers(value));
 
     // loop trough configured properties to find best match
     for(var key in adminWeights) {
-      var prop = hit.parent[key];
+      var prop = (key === 'street' && hit.address_parts) ? hit.address_parts.street : hit.parent[key];
       if (prop) {
         var match;
         if ( Array.isArray(prop) ) {
