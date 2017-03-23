@@ -77,12 +77,13 @@ g{
       "sorting":"fi"
     },
     "localization" : {
-        "confidenceAdminWeights": {
+      "confidenceAdminWeights": {
         "localadmin": 1,
         "locality": 0.2,
         "neighbourhood": 0.2,
         "region": 0.2,
-        "country": 0.1
+        "country": 0.1,
+        "street": 0.2
       },
       "confidenceAddressParts": {
 	"number": {"parent":"address_parts", "field":"number", "numeric": true, "weight": 0.5},
