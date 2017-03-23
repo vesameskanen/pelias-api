@@ -34,20 +34,28 @@ if (api && api.localization) {
 }
 
 
-// original query cannot handle libpostal's scandic letter conversion ä -> ae
-// So try restoring the strings. Simple method below works for 99% of cases
+// libpostal's parsing cconverts scandic letters: ä -> a ...
+// try restoring the strings
+
+var restoreMap = { 'ä':'a', 'ö':'o', 'å':'a' };
+var restoreRegex = {};
+
+for(var c in restoreMap) {
+  restoreRegex[c] = new RegExp(c, 'gi');
+}
 
 function restoreParsed(parsed, text) {
-  var restoreMap = { 'ä':'ae', 'ö':'oe', 'å':'aa' };
+  var ntext = text;
 
-  _.forEach(restoreMap, function(xx, c) {
-    if(text.indexOf(c) !== -1 ) {
-      parsed = parsed.replace(new RegExp(xx, 'g'), c);
-    }
-  });
-  // see if restored string is part of original text
-  if(text.indexOf(parsed) !== -1) { // yeah, succeeded
-    return parsed;
+  for(var c in restoreMap) {
+    ntext = ntext.replace(restoreRegex[c], restoreMap[c]);
+  }
+
+  // see if parsed string is part of converted text
+  var index = ntext.indexOf(parsed);
+  var len = parsed.length;
+  if(index > -1 && index + len <= text.length) { // yeah, found
+    return text.substring(index, index+len);
   }
   return null;
 }
