@@ -1,4 +1,4 @@
-g{
+{
   "esclient": {
     "apiVersion": "2.3",
     "keepAlive": true,
