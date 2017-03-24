@@ -1,4 +1,4 @@
-{
+g{
   "esclient": {
     "apiVersion": "2.3",
     "keepAlive": true,
@@ -25,7 +25,7 @@
     "indexName": "pelias",
     "version": "1.0",
     "textAnalyzer": "libpostal",
-    "sizePadding": 6,
+    "sizePadding": 10,
     "minConfidence": 0.2,
     "relativeMinConfidence": 0.4,
     "languageMatchThreshold": 0.4,
@@ -77,12 +77,13 @@
       "sorting":"fi"
     },
     "localization" : {
-        "confidenceAdminWeights": {
+      "confidenceAdminWeights": {
         "localadmin": 1,
         "locality": 0.2,
         "neighbourhood": 0.2,
         "region": 0.2,
-        "country": 0.1
+        "country": 0.1,
+        "street": 0.2
       },
       "confidenceAddressParts": {
 	"number": {"parent":"address_parts", "field":"number", "numeric": true, "weight": 0.5},
@@ -101,7 +102,7 @@
       },
       "labelSchemas": {
         "FIN": {
-          "address": { "fields": [["street", "housenumber"], "neighbourhood"], "matchType": "first" },
+          "address": { "fields": [["street", "housenumber"], "neighbourhood"], "matchType": "first", "targets": ["venue", "stop", "station"] },
           "local": { "fields": ["localadmin", "locality"], "matchType": "best" }
         }
       }

@@ -11,7 +11,10 @@ module.exports = function( record, req ){
   // iterate the schema
   for (var field in schema) {
     var valueFunction = schema[field];
-    labelParts.push(valueFunction(record, req));
+    var value = valueFunction(record, req);
+    if(value) {
+      labelParts.push(value);
+    }
   }
 
   // retain only things that are truthy
@@ -28,11 +31,10 @@ function dedupeNameAndFirstLabelElement(labelParts) {
     // first, dedupe the name and 1st label array elements
     //  this is used to ensure that the `name` and first admin hierarchy elements aren't repeated
     //  eg - `["Lancaster", "Lancaster", "PA", "United States"]` -> `["Lancaster", "PA", "United States"]`
-    var deduped = _.uniq([labelParts.shift(), labelParts.shift()]);
 
-    // second, unshift the deduped parts back onto the labelParts
-    labelParts.unshift.apply(labelParts, deduped);
-
+    if (labelParts[0].toLowerCase() === labelParts[1].toLowerCase()) {
+      labelParts.splice(1, 1);
+    }
   }
 
   return labelParts;
@@ -47,6 +49,10 @@ function getSchema(country_a) {
 
 }
 
+function normalize(str) {
+  return str.toLowerCase().replace(/ /g, '');
+}
+
 // helper function that sets a default label
 function getInitialLabel(record) {
 
@@ -58,7 +64,8 @@ function getInitialLabel(record) {
     return [record.expandedName];
   }
 
-  if (record.altName && record.altName !== record.name && record.name.indexOf(record.altName)===-1) {
+  if (record.altName && record.altName !== record.name &&
+    normalize(record.name).indexOf(normalize(record.altName))===-1) {
     return [record.name +' ('+ record.altName +')'];
   }
 

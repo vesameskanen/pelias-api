@@ -34,36 +34,65 @@ if (api && api.localization) {
 }
 
 
-// original query cannot handle libpostal's scandic letter conversion ä -> ae
-// So try restoring the strings. Simple method below works for 99% of cases
+// libpostal's parsing cconverts scandic letters: ä -> a ...
+// try restoring the strings
+
+var restoreMap = { 'ä':'a', 'ö':'o', 'å':'a' };
+var restoreRegex = {};
+
+for(var c in restoreMap) {
+  restoreRegex[c] = new RegExp(c, 'gi');
+}
 
 function restoreParsed(parsed, text) {
-  var restoreMap = { 'ä':'ae', 'ö':'oe', 'å':'aa' };
+  var ntext = text;
 
-  _.forEach(restoreMap, function(xx, c) {
-    if(text.indexOf(c) !== -1 ) {
-      parsed = parsed.replace(new RegExp(xx, 'g'), c);
-    }
-  });
-  // see if restored string is part of original text
-  if(text.indexOf(parsed) !== -1) { // yeah, succeeded
-    return parsed;
+  for(var c in restoreMap) {
+    ntext = ntext.replace(restoreRegex[c], restoreMap[c]);
+  }
+
+  // see if parsed string is part of converted text
+  var index = ntext.indexOf(parsed);
+  var len = parsed.length;
+  if(index > -1 && index + len <= text.length) { // yeah, found
+    return text.substring(index, index+len);
   }
   return null;
 }
 
 
+function addAdmin(parsedText, admin) {
+  if (parsedText.regions && parsedText.regions.indexOf(admin) > -1) {
+    return; // nop
+  }
+  parsedText.regions = parsedText.regions || [];
+  parsedText.regions.push(admin);
+  parsedText.admin_parts = (parsedText.admin_parts ? parsedText.admin_parts+', '+admin : admin);
+}
+
 function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
+
+  // validate street number
+  if(check.assigned(fromLibpostal.number) && streetNumberValidator(fromLibpostal.number)) {
+    parsedText.number = fromLibpostal.number;
+  }
 
   // if 'query' part is set, libpostal has probably failed in parsing
   // NOTE!! This may change when libpostal parsing improves
   // try reqularly using libpostal parsing also when query field is set.
+
   if(check.undefined(fromLibpostal.query)) {
 
     if(check.assigned(fromLibpostal.street)) {
       var street = restoreParsed(fromLibpostal.street, text);
       if(street) {
-        parsedText.street = street;
+        if((!parsedText.name || parsedText.name.toLowerCase()===street) && !parsedText.number) {
+          // plain parsed street is suspicious as Libpostal often maps venue name to street
+          // better to search it via name
+          parsedText.name = street;
+        } else {
+          parsedText.street = street;
+        }
       }
     }
 
@@ -72,10 +101,15 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
 
       if(city) {
         parsedText.city = city;
-        parsedText.regions = parsedText.regions || [];
-        if(parsedText.regions.indexOf(city)===-1) {
-          parsedText.regions.push(city);
-          parsedText.admin_parts = (parsedText.admin_parts?parsedText.admin_parts+', '+city:city);
+        if(parsedText.name && parsedText.name !== city) {
+          addAdmin(parsedText, city);
+        } else {
+          // if only a single item is parsed, don't duplicate it to 2 search slots
+          // why? Because our data does not include small admin areas such as villages
+          // and admin match requirement would produce bad scores
+          // basically this is a bug in libpostal parsing. Such small palces shoudl not
+          // get parsed as city
+          parsedText.name = city;
         }
       }
     }
@@ -83,18 +117,15 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
     if(check.assigned(fromLibpostal.neighbourhood)) {
       var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
 
-      if(nbrh && parsedText.name !== nbrh) { // don't add same string to both name and admin parts
-        parsedText.regions = parsedText.regions || [];
-        if(parsedText.regions.indexOf(nbrh)===-1) {
-          parsedText.regions.push(nbrh);
-          parsedText.admin_parts = (parsedText.admin_parts?parsedText.admin_parts+', '+nbrh:nbrh);
+      if(nbrh) {
+        parsedText.neighbourhood = nbrh;
+        if(parsedText.name && parsedText.name !== nbrh) {
+          addAdmin(parsedText, nbrh);
+        } else {
+          parsedText.name = nbrh;
         }
       }
     }
-  }
-  // validate street number
-  if(check.assigned(fromLibpostal.number) && streetNumberValidator(fromLibpostal.number)) {
-    parsedText.number = fromLibpostal.number;
   }
 
   // validate postalcode

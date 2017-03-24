@@ -12,6 +12,7 @@ var languages = ['default'];
 var equalCharMap = {}, equalRegex = {};
 var adminWeights;
 var minConfidence=0, relativeMinConfidence;
+var genitiveThreshold = 0.4;
 
 // default configuration for address confidence check
 var confidenceAddressParts = {
@@ -76,12 +77,17 @@ function setup(peliasConfig) {
 
 // map chars which are considered equal in scoring
 function normalize(s) {
-  for(var c in equalCharMap) {
-    s = s.replace(equalRegex[c], equalCharMap[c]);
+  if(s) {
+    for(var c in equalCharMap) {
+      s = s.replace(equalRegex[c], equalCharMap[c]);
+    }
   }
   return s;
 }
 
+function removeNumbers(val) {
+  return val.replace(/[0-9]/g, '').trim();
+}
 
 function compareProperty(p1, p2) {
   if (Array.isArray(p1)) {
@@ -238,33 +244,69 @@ function computeConfidenceScore(req, hit) {
 
 
 /**
- * Compare text string against configuration defined language versions of a property
+ * Compare text string against configuration defined language versions of the name
  *
  * @param {string} text
- * @param {object} property with language versions
+ * @param {object} document with name and other props
+ * @param {bool} remove numbers from examined property
+ * @param {bool} variate names with admin parts & street
  * @returns {bool}
  */
 
-function checkLanguageProperty(text, propertyObject, stripNumbers) {
+function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
   var bestScore = 0;
   var bestName;
+  var names = doc.name;
 
   text = normalize(text);
 
-  for (var lang in propertyObject) {
+  var checkNewBest = function(name) {
+    var score = fuzzy.match(text, name);
+    logger.debug('######', text, '|', name, score);
+    if (score >= bestScore ) {
+      bestScore = score;
+      bestName = name;
+    }
+    return score;
+  };
+
+  var checkAdminName = function(admin, name) {
+    admin = normalize(admin);
+    if(admin && name.indexOf(admin) === -1) {
+      checkNewBest(admin + ' ' + name);
+    }
+  };
+
+  var checkAdminNames = function(admins, name) {
+    admins.forEach(function(admin) {
+      checkAdminName(admin, name);
+    });
+  };
+
+  for (var lang in names) {
     if (languages.indexOf(lang) === -1) {
       continue;
     }
-    var score;
-    var text2 = normalize(propertyObject[lang]);
+    var name = normalize(names[lang]);
     if(stripNumbers) {
-      text2 = text2.replace(/[0-9]/g, '').trim();
+      name = removeNumbers(name);
     }
-    score = fuzzy.match(text, text2);
+    var score = checkNewBest(name);
 
-    if (score >= bestScore ) {
-      bestScore = score;
-      bestName = propertyObject[lang];
+    if (tryGenitive && score > genitiveThreshold && // don't prefix unless base match is OK
+        text.length > 2 + name.length ) { // Shortest admin prefix is 'ii '
+      // prefix with parent admins to catch cases like 'kontulan r-kioski'
+      var parent = doc.parent;
+      for(var key in adminWeights) {
+        var admins = parent[key];
+        if (Array.isArray(admins)) {
+          checkAdminNames(admins, name);
+        } else {
+          checkAdminName(admins, name);
+        }
+      }
+      // try also street: 'helsinginkadun r-kioski'
+      checkAdminName(doc.street, name);
     }
   }
   logger.debug('name confidence', bestScore, text, bestName);
@@ -276,22 +318,38 @@ function checkLanguageProperty(text, propertyObject, stripNumbers) {
 /**
  * Compare text string or name component of parsed_text against
  * default name in result
- * Note: consider also street here as it often stores searched name
  *
  * @param {string} text
- * @param {object|undefined} parsed_text
+ * @param {object|undefined} parsedText
  * @param {object} hit
  * @returns {number}
  */
-function checkName(text, parsed_text, hit) {
+function checkName(text, parsedText, hit) {
 
-  // parsed_text name should take precedence if available since it's the cleaner name property
-  if (check.assigned(parsed_text) && check.assigned(parsed_text.name)) {
-    return(checkLanguageProperty(parsed_text.name, hit.name));
+  // parsedText name should take precedence if available since it's the cleaner name property
+  if (check.assigned(parsedText) && check.assigned(parsedText.name)) {
+    var name = parsedText.name;
+    var isVenue = hit.layer === 'venue' || hit.layer === 'stop' || hit.layer === 'station';
+    var bestScore = checkLanguageNames(name, hit, false, isVenue);
+
+    if (parsedText.regions && isVenue && bestScore > genitiveThreshold) {
+      // try approximated genitive form : tuomikirkko, tampere -> tampere tuomiokirkko
+      // exact genitive form is hard e.g. in finnish lang: turku->turun, lieto->liedon ...
+      parsedText.regions.forEach(function(region) {
+        region = normalize(removeNumbers(region));
+        if( name.indexOf(region) === -1 ) { // not already included
+          var score = checkLanguageNames(region + ' ' + name, hit);
+          if (score > bestScore) {
+            bestScore = score;
+          }
+        }
+      });
+    }
+    return(bestScore);
   }
 
-  // if no parsed_text check the full unparsed text value
-  return(checkLanguageProperty(text, hit.name));
+  // if no parsedText check the full unparsed text value
+  return(checkLanguageNames(text, hit, false, true));
 }
 
 
@@ -364,7 +422,7 @@ function checkAddressPart(text, hit, key) {
   // special case: proper version can be stored in the name
   // we need this because street name currently stores only one language
   if(key==='street' && hit.name) {
-    var _score = checkLanguageProperty(text[key], hit.name, true);
+      var _score = checkLanguageNames(text[key], hit, true, false);
     if(_score>score) {
       score = _score;
     }
@@ -392,10 +450,11 @@ function checkAdmin(values, hit) {
 
   values.forEach(function(value) {
     var best=0, weight = 1;
+    var nvalue = normalize(removeNumbers(value));
 
     // loop trough configured properties to find best match
     for(var key in adminWeights) {
-      var prop = hit.parent[key];
+      var prop = (key === 'street' && hit.address_parts) ? hit.address_parts.street : hit.parent[key];
       if (prop) {
         var match;
         if ( Array.isArray(prop) ) {
@@ -403,9 +462,9 @@ function checkAdmin(values, hit) {
           for(var i in prop) {
             nProp.push(normalize(prop[i]));
           }
-          match = fuzzy.matchArray(normalize(value), nProp);
+          match = fuzzy.matchArray(nvalue, nProp);
         } else {
-          match = fuzzy.match(normalize(value), normalize(prop));
+          match = fuzzy.match(nvalue, normalize(prop));
         }
         if(match>best) {
           best = match;
