@@ -25,12 +25,12 @@ var confidenceAddressParts = {
 
 // layers priority in result sorting
 var layers = [
+  'neighbourhood',
   'stop',
   'station',
   'venue',
   'address',
   'street',
-  'neighbourhood',
   'borough',
   'locality',
   'localadmin',
@@ -40,6 +40,11 @@ var layers = [
   'macroregion',
   'dependency',
   'country'
+];
+
+// source priority in result sorting
+var sources = [
+  'openstreetmap' // prefer OSM to entries missing from this table (i.e. index == -1)
 ];
 
 function setup(peliasConfig) {
@@ -117,6 +122,9 @@ function compareResults(a, b) {
   }
   if(a.layer !== b.layer) { // larger has higher priority
     return layers.indexOf(b.layer) - layers.indexOf(a.layer);
+  }
+  if(a.source !== b.source) {
+    return sources.indexOf(b.source) - sources.indexOf(a.source);
   }
   if (a.distance !== b.distance) {  // focus point defined
     return a.distance - b.distance;

@@ -155,7 +155,7 @@ module.exports.tests.trump = function(test, common) {
     });
   });
 
-  test('openaddresses trumps openstreetmap', function (t) {
+  test('openstreetmap trumps openaddresses', function (t) {
     var req = {
       clean: {
         text: '100 Main St',
@@ -182,7 +182,7 @@ module.exports.tests.trump = function(test, common) {
     var expectedCount = 1;
     dedupe(req, res, function () {
       t.equal(res.data.length, expectedCount, 'results have fewer items than before');
-      t.deepEqual(res.data[0].source, 'openaddresses', 'openaddresses result won');
+      t.deepEqual(res.data[0].source, 'openstreetmap', 'openstreetmap result won');
       t.end();
     });
   });
