@@ -27,10 +27,10 @@ var confidenceAddressParts = {
 var layers = [
   'neighbourhood',
   'stop',
-  'station',
   'venue',
   'address',
   'street',
+  'station',
   'borough',
   'locality',
   'localadmin',
