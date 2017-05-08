@@ -1,22 +1,16 @@
 var fuzzy = require('fuzzy.js');
 
+var stringUtils = require('../helper/stringUtils');
+var normalize = stringUtils.normalize;
+var removeSpaces = stringUtils.removeSpaces;
+
+
 // fuzzy.js score range is not normalized but depends on string length as computed below
 // NOTE: recheck whenever updating fuzzy.js version!
 function getMaxScore(len) {
   return 3*(len - 1) + 1;
 }
 
-function normalizeName(text) {
-  return text.toLowerCase();
-}
-
-function removeSpaces(val) {
-  return val.replace(/ /g, '');
-}
-
-function removeNumbers(val) {
-  return val.replace(/[0-9]/g, '').trim();
-}
 
 /* returns 1.0 only when strings are identical
    Totally different strings return 0.
@@ -65,8 +59,8 @@ function _fuzzyMatch(text1, text2) {
 
 // matching which takes word order into account
 function fuzzyMatch(text1, text2) {
-  text1 = normalizeName(text1);
-  text2 = normalizeName(text2);
+  text1 = normalize(text1);
+  text2 = normalize(text2);
 
   // straight match as a whole string
   var score = _fuzzyMatch(text1, text2);

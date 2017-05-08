@@ -8,8 +8,10 @@ var logger = require('pelias-logger').get('api');
 var check = require('check-types');
 var _ = require('lodash');
 var fuzzy = require('../helper/fuzzyMatch');
+var stringUtils = require('../helper/stringUtils');
+var normalize = stringUtils.normalize;
+var removeNumbers = stringUtils.removeNumbers;
 var languages = ['default'];
-var equalCharMap = {}, equalRegex = {};
 var adminWeights;
 var minConfidence=0, relativeMinConfidence;
 var genitiveThreshold = 0.4;
@@ -60,6 +62,7 @@ function setup(peliasConfig) {
     }
 
     relativeMinConfidence = peliasConfig.relativeMinConfidence;
+
     var localization = peliasConfig.localization;
     if (localization) {
       if(localization.confidenceAdminWeights) {
@@ -68,27 +71,11 @@ function setup(peliasConfig) {
       if(localization.confidenceAddressParts) {
         confidenceAddressParts = localization.confidenceAddressParts;
       }
-      if(localization.equalCharMap) {
-        equalCharMap = localization.equalCharMap;
-        for(var c in equalCharMap) {
-          equalRegex[c] = new RegExp(c, 'gi');
-        }
-      }
     }
   }
   return computeScores;
 }
 
-
-// map chars which are considered equal in scoring
-function normalize(s) {
-  if(s) {
-    for(var c in equalCharMap) {
-      s = s.replace(equalRegex[c], equalCharMap[c]);
-    }
-  }
-  return s;
-}
 
 function removeNumbers(val) {
   return val.replace(/[0-9]/g, '').trim();
@@ -266,11 +253,9 @@ function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
   var bestName;
   var names = doc.name;
 
-  text = normalize(text);
-
   var checkNewBest = function(name) {
     var score = fuzzy.match(text, name);
-    logger.debug('######', text, '|', name, score);
+    logger.debug('#', text, '|', name, score);
     if (score >= bestScore ) {
       bestScore = score;
       bestName = name;
@@ -344,7 +329,7 @@ function checkName(text, parsedText, hit) {
       // try approximated genitive form : tuomikirkko, tampere -> tampere tuomiokirkko
       // exact genitive form is hard e.g. in finnish lang: turku->turun, lieto->liedon ...
       parsedText.regions.forEach(function(region) {
-        region = normalize(removeNumbers(region));
+        region = removeNumbers(region);
         if( name.indexOf(region) === -1 ) { // not already included
           var score = checkLanguageNames(region + ' ' + name, hit);
           if (score > bestScore) {
@@ -388,7 +373,7 @@ function propMatch(textProp, hitProp, numeric) {
     }
   }
 
-  return fuzzy.match(normalize(textProp.toString()), normalize(hitProp.toString()));
+  return fuzzy.match(textProp.toString(), hitProp.toString());
 }
 
 // array wrapper for function above
@@ -458,7 +443,7 @@ function checkAdmin(values, hit) {
 
   values.forEach(function(value) {
     var best=0, weight = 1;
-    var nvalue = normalize(removeNumbers(value));
+    var nvalue = removeNumbers(value);
 
     // loop trough configured properties to find best match
     for(var key in adminWeights) {
@@ -468,11 +453,11 @@ function checkAdmin(values, hit) {
         if ( Array.isArray(prop) ) {
           var nProp = [];
           for(var i in prop) {
-            nProp.push(normalize(prop[i]));
+            nProp.push(prop[i]);
           }
           match = fuzzy.matchArray(nvalue, nProp);
         } else {
-          match = fuzzy.match(nvalue, normalize(prop));
+          match = fuzzy.match(nvalue, prop);
         }
         if(match>best) {
           best = match;

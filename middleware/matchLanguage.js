@@ -17,6 +17,7 @@
 var fuzzy = require('../helper/fuzzyMatch');
 var _ = require('lodash');
 var logger = require('pelias-logger').get('api');
+var removeNumbers = require('../helper/stringUtils').removeNumbers;
 var languages = ['default'];
 var languageMap = {};
 var languageMatchThreshold = 0.7;
@@ -32,9 +33,6 @@ function setup(peliasConfig) {
   return matchLanguage;
 }
 
-function removeNumbers(val) {
-  return val.replace(/[0-9]/g, '').trim();
-}
 
 function matchName(text, name) { // compute matching score
   var name2 = removeNumbers(name);
