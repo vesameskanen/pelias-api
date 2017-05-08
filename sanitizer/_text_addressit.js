@@ -4,8 +4,9 @@ var parser = require('addressit');
 var extend = require('extend');
 var _      = require('lodash');
 var logger = require('pelias-logger').get('api');
-
+var normalize = require('../helper/stringUtils').normalize;
 var api = require('pelias-config').generate().api;
+
 
 // List of values which should not be included in parsed regions array.
 // Usually this includes country name(s) in a national setup.
@@ -55,7 +56,7 @@ function restoreParsed(parsed, text) {
   var index = ntext.indexOf(parsed);
   var len = parsed.length;
   if(index > -1 && index + len <= text.length) { // yeah, found
-    return text.substring(index, index+len);
+    return normalize(text.substring(index, index+len));
   }
   return null;
 }
@@ -120,7 +121,7 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
           // if only a single item is parsed, don't duplicate it to 2 search slots
           // why? Because our data does not include small admin areas such as villages
           // and admin match requirement would produce bad scores
-          // basically this is a bug in libpostal parsing. Such small palces shoudl not
+          // basically this is a bug in libpostal parsing. Such small palces should not
           // get parsed as city
           parsedText.name = city;
         }
@@ -155,7 +156,7 @@ function sanitize( raw, clean ){
   // valid input 'text'
   else {
     // valid text
-    clean.text = raw.text.toLowerCase();
+    clean.text = normalize(raw.text);
 
     // remove anything that may have been parsed before
     var fromLibpostal = clean.parsed_text;
