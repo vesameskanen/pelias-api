@@ -277,19 +277,19 @@ module.exports.tests.text_parser = function(test, common) {
 
   test('valid address with leading 0s in zipcode', function(t) {
     var raw = {
-      text: '339 W Main St, Cheshire, 06410'
+      text: '339 w main st, cheshire, 06410'
     };
     var clean = {};
 
     var expected_clean = {
-      text: '339 W Main St, Cheshire, 06410',
+      text: '339 w main st, cheshire, 06410',
       parsed_text: {
-        name: '339 W Main St',
+        name: '339 w main st',
         number: '339',
-        street: 'W Main St',
+        street: 'w main st',
         postalcode: '06410',
-        regions: [ 'Cheshire' ],
-        admin_parts: 'Cheshire, 06410'
+        regions: [ 'cheshire' ],
+        admin_parts: 'cheshire, 06410'
       }
     };
 
@@ -302,19 +302,19 @@ module.exports.tests.text_parser = function(test, common) {
 
   test('valid address without spaces after commas', function(t) {
     var raw = {
-      text: '339 W Main St,Lancaster,PA'
+      text: '339 w main st,lancaster,pa'
     };
     var clean = {};
 
     var expected_clean = {
-      text: '339 W Main St,Lancaster,PA',
+      text: '339 w main st,lancaster,pa',
       parsed_text: {
-        name: '339 W Main St',
+        name: '339 w main st',
         number: '339',
-        street: 'W Main St',
+        street: 'w main st',
         state: 'PA',
-        regions: [ 'Lancaster' ],
-        admin_parts: 'Lancaster, PA'
+        regions: [ 'lancaster' ],
+        admin_parts: 'lancaster, pa'
       }
     };
 
