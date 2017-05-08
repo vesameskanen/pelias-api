@@ -96,6 +96,19 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
       }
     }
 
+    if(check.assigned(fromLibpostal.neighbourhood)) {
+      var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
+
+      if(nbrh) {
+        parsedText.neighbourhood = nbrh;
+        if(parsedText.name && parsedText.name !== nbrh) {
+          addAdmin(parsedText, nbrh);
+        } else {
+          parsedText.name = nbrh;
+        }
+      }
+    }
+
     if(check.assigned(fromLibpostal.city)) {
       var city = restoreParsed(fromLibpostal.city, text);
 
@@ -110,19 +123,6 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
           // basically this is a bug in libpostal parsing. Such small palces shoudl not
           // get parsed as city
           parsedText.name = city;
-        }
-      }
-    }
-
-    if(check.assigned(fromLibpostal.neighbourhood)) {
-      var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
-
-      if(nbrh) {
-        parsedText.neighbourhood = nbrh;
-        if(parsedText.name && parsedText.name !== nbrh) {
-          addAdmin(parsedText, nbrh);
-        } else {
-          parsedText.name = nbrh;
         }
       }
     }
