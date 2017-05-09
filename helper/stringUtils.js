@@ -18,6 +18,7 @@ function normalize(s) {
     for(var c in equalCharMap) {
       s = s.replace(equalRegex[c], equalCharMap[c]);
     }
+    s = s.trim();
   }
   return s;
 }
