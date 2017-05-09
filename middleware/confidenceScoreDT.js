@@ -189,12 +189,15 @@ function countWords(str) {
 function computeConfidenceScore(req, hit) {
 
   var parsedText = req.clean.parsed_text;
-  var weightSum=0;
+  var weightSum;
 
   // compare parsed name (or raw text) against configured language versions of name
   if((parsedText && (parsedText.name || parsedText.query)) || req.clean.text) {
     hit.confidence = checkName(req.clean.text, parsedText, hit);
-    weightSum+=1;
+    weightSum = 1;
+  } else {
+    hit.confidence = 0;
+    weightSum = 0;
   }
 
   // compare address parts one by one
@@ -232,7 +235,9 @@ function computeConfidenceScore(req, hit) {
     }
   }
 
-  hit.confidence /= weightSum; // normalize
+  if(weightSum>0) {
+    hit.confidence /= weightSum; // normalize
+  }
 
   // TODO: look at categories
   logger.debug('### confidence', hit.confidence);
