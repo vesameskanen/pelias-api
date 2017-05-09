@@ -189,10 +189,13 @@ function countWords(str) {
 function computeConfidenceScore(req, hit) {
 
   var parsedText = req.clean.parsed_text;
+  var weightSum=0;
 
   // compare parsed name (or raw text) against configured language versions of name
-  hit.confidence = checkName(req.clean.text, parsedText, hit);
-  var weightSum=1;
+  if((parsedText && (parsedText.name || parsedText.query)) || req.clean.text) {
+    hit.confidence = checkName(req.clean.text, parsedText, hit);
+    weightSum+=1;
+  }
 
   // compare address parts one by one
   if (parsedText) {
@@ -215,7 +218,7 @@ function computeConfidenceScore(req, hit) {
       // count of finer score factors. Score is max 0.5 if city is all wrong
       hit.confidence += weightSum*adminConfidence;
       weightSum *= 2;
-    } else if(hit.confidence<1 && countWords(req.clean.text)>1) {
+    } else if(hit.confidence<1 && req.clean.text && countWords(req.clean.text)>1) {
 
       // Text could not be parsed, and does not match any document perfectly.
       // There is a chance that text contains admin info like small city without
@@ -320,8 +323,8 @@ function checkLanguageNames(text, doc, stripNumbers, tryGenitive) {
 function checkName(text, parsedText, hit) {
 
   // parsedText name should take precedence if available since it's the cleaner name property
-  if (check.assigned(parsedText) && check.assigned(parsedText.name)) {
-    var name = parsedText.name;
+  if (check.assigned(parsedText) && (check.assigned(parsedText.name) || check.assigned(parsedText.query))) {
+    var name = parsedText.name || parsedText.query;
     var isVenue = hit.layer === 'venue' || hit.layer === 'stop' || hit.layer === 'station';
     var bestScore = checkLanguageNames(name, hit, false, isVenue);
 
