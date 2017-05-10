@@ -93,7 +93,7 @@
       "filteredRegions": ["suomi", "finland"],
       "cleanRegions": true,
       "postalCodeValidator": "^[0-9]{5}$",
-      "streetNumberValidator": "^[0-9]+\\s*[A-Za-z]{0,1}$",
+      "streetNumberValidator": "^[0-9].*$",
       "translations": "/opt/pelias/api/translations.json",
       "equalCharMap": {
         "é":"e",

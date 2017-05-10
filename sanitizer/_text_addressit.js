@@ -4,8 +4,9 @@ var parser = require('addressit');
 var extend = require('extend');
 var _      = require('lodash');
 var logger = require('pelias-logger').get('api');
-
+var normalize = require('../helper/stringUtils').normalize;
 var api = require('pelias-config').generate().api;
+
 
 // List of values which should not be included in parsed regions array.
 // Usually this includes country name(s) in a national setup.
@@ -55,7 +56,7 @@ function restoreParsed(parsed, text) {
   var index = ntext.indexOf(parsed);
   var len = parsed.length;
   if(index > -1 && index + len <= text.length) { // yeah, found
-    return text.substring(index, index+len);
+    return normalize(text.substring(index, index+len));
   }
   return null;
 }
@@ -86,12 +87,25 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
     if(check.assigned(fromLibpostal.street)) {
       var street = restoreParsed(fromLibpostal.street, text);
       if(street) {
-        if((!parsedText.name || parsedText.name.toLowerCase()===street) && !parsedText.number) {
+        if((!parsedText.name || parsedText.name===street) && !parsedText.number) {
           // plain parsed street is suspicious as Libpostal often maps venue name to street
           // better to search it via name
           parsedText.name = street;
         } else {
           parsedText.street = street;
+        }
+      }
+    }
+
+    if(check.assigned(fromLibpostal.neighbourhood)) {
+      var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
+
+      if(nbrh) {
+        parsedText.neighbourhood = nbrh;
+        if(parsedText.name && parsedText.name !== nbrh) {
+          addAdmin(parsedText, nbrh);
+        } else {
+          parsedText.name = nbrh;
         }
       }
     }
@@ -107,22 +121,9 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
           // if only a single item is parsed, don't duplicate it to 2 search slots
           // why? Because our data does not include small admin areas such as villages
           // and admin match requirement would produce bad scores
-          // basically this is a bug in libpostal parsing. Such small palces shoudl not
+          // basically this is a bug in libpostal parsing. Such small palces should not
           // get parsed as city
           parsedText.name = city;
-        }
-      }
-    }
-
-    if(check.assigned(fromLibpostal.neighbourhood)) {
-      var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
-
-      if(nbrh) {
-        parsedText.neighbourhood = nbrh;
-        if(parsedText.name && parsedText.name !== nbrh) {
-          addAdmin(parsedText, nbrh);
-        } else {
-          parsedText.name = nbrh;
         }
       }
     }
@@ -155,7 +156,7 @@ function sanitize( raw, clean ){
   // valid input 'text'
   else {
     // valid text
-    clean.text = raw.text;
+    clean.text = normalize(raw.text);
 
     // remove anything that may have been parsed before
     var fromLibpostal = clean.parsed_text;
@@ -167,7 +168,7 @@ function sanitize( raw, clean ){
     // use the libpostal parsed address components if available
     if(check.assigned(fromLibpostal)) {
       parsed_text = parsed_text || {};
-      assignValidLibpostalParsing(parsed_text, fromLibpostal, clean.text.toLowerCase());
+      assignValidLibpostalParsing(parsed_text, fromLibpostal, clean.text);
     }
 
     if (check.assigned(parsed_text) && Object.keys(parsed_text).length > 0) {
@@ -252,9 +253,6 @@ function parse(query) {
   if(cleanRegions && parsed_text.regions) {
     if(parsed_text.regions.length>1) {
       parsed_text.regions = parsed_text.regions.slice(1);
-      for (var i in parsed_text.regions) {
-        parsed_text.regions[i] = parsed_text.regions[i].toLowerCase();
-      }
     } else {
       delete parsed_text.regions;
     }

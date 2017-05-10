@@ -1,6 +1,9 @@
 var _ = require('lodash'),
     schemas = require('./labelSchema');
 var logger = require('pelias-logger').get('api:labelgenerator');
+var stringUtils = require('../helper/stringUtils');
+var normalize = stringUtils.normalize;
+var removeSpaces = stringUtils.removeSpaces;
 
 module.exports = function( record, req ){
   var schema = getSchema(record.country_a);
@@ -49,8 +52,8 @@ function getSchema(country_a) {
 
 }
 
-function normalize(str) {
-  return str.toLowerCase().replace(/ /g, '');
+function normalizeString(str) {
+  return removeSpaces(normalize(str));
 }
 
 // helper function that sets a default label
@@ -64,8 +67,8 @@ function getInitialLabel(record) {
     return [record.expandedName];
   }
 
-  if (record.altName && record.altName !== record.name &&
-    normalize(record.name).indexOf(normalize(record.altName))===-1) {
+  if (record.altName &&
+    normalizeString(record.name).indexOf(normalizeString(record.altName))===-1) {
     return [record.name +' ('+ record.altName +')'];
   }
 
