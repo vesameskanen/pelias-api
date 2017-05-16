@@ -13,6 +13,9 @@ function sanitize( raw, clean ){
 
   if (clean.layers && clean.sources) {
     clean.sources.forEach(function(source) {
+      if (source.indexOf('gtfs') === 0) {
+        source = 'gtfs'; // map gtfs<feedid> to plain gtfs
+      }
       var layers_for_source = type_mapping.layers_by_source[source];
       clean.layers.forEach(function(layer) {
         if (_.includes(layers_for_source, layer)) {

@@ -1,5 +1,6 @@
 var _ = require('lodash'),
     check = require('check-types');
+var logger = require('pelias-logger').get('api');
 
 function getValidKeys(mapping) {
   return _.uniq(Object.keys(mapping)).join(',');
@@ -39,9 +40,22 @@ function sanitize( raw, clean, opts ) {
         return target.toLowerCase(); // lowercase inputs
       });
 
+      var matched = []; // put regex matches here
+
       // emit an error for each target *not* present in the targetMap
       targets.filter( function( target ){
-        return !opts.targetMap.hasOwnProperty(target);
+        if(opts.targetMap.hasOwnProperty(target)) { // OK by direct equality
+          return false;
+        }
+        // try regex
+        for(var alias in opts.targetMap) {
+          var reg = new RegExp(alias);
+          if(reg.test(target)) {
+            matched.push(target);
+            return false;
+          }
+        }
+        return true; // no match, filter away
       }).forEach( function( target ){
         messages.errors.push(
           '\'' + target + '\' is an invalid ' + opts.paramName + ' parameter. Valid options: ' + opts.targetMapKeysString
@@ -51,8 +65,14 @@ function sanitize( raw, clean, opts ) {
       // only set types value when no error occured
       if( !messages.errors.length ){
         clean[opts.paramName] = targets.reduce(function(acc, target) {
-          return acc.concat(opts.targetMap[target]);
+          if(opts.targetMap[target]) {
+            return acc.concat(opts.targetMap[target]);
+          }
+          else {
+            return acc;
+          }
         }, []);
+        clean[opts.paramName] = clean[opts.paramName].concat(matched);
 
         // dedupe in case aliases expanded to common things or user typed in duplicates
         clean[opts.paramName] = _.uniq(clean[opts.paramName]);
