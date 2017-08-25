@@ -13,7 +13,7 @@ RUN mkdir -p /mnt/data/libpostal
 
 RUN git clone https://github.com/openvenues/libpostal \
   && cd libpostal \
-  && git checkout tags/v0.3.4 \
+  && git checkout tags/v1.0.0 \
   && ./bootstrap.sh \
   && ./configure --datadir=/mnt/data/libpostal \
   && make \
