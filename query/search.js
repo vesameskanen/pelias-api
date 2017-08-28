@@ -16,16 +16,11 @@ if (api && api.query && api.query.search && api.query.search.disableFallback) {
 // general-purpose search query
 //------------------------------
 var fallbackQuery = new peliasQuery.layout.FallbackQuery();
-var geodisambiguationQuery = new peliasQuery.layout.GeodisambiguationQuery();
 
 // scoring boost
 fallbackQuery.score( peliasQuery.view.focus_only_function( peliasQuery.view.phrase ) );
 fallbackQuery.score( peliasQuery.view.popularity_only_function );
 fallbackQuery.score( peliasQuery.view.population_only_function );
-
-geodisambiguationQuery.score( peliasQuery.view.focus_only_function( peliasQuery.view.phrase ) );
-geodisambiguationQuery.score( peliasQuery.view.popularity_only_function );
-geodisambiguationQuery.score( peliasQuery.view.population_only_function );
 // --------------------------------
 
 // non-scoring hard filters
@@ -35,13 +30,6 @@ fallbackQuery.filter( peliasQuery.view.boundary_rect );
 fallbackQuery.filter( peliasQuery.view.sources );
 fallbackQuery.filter( peliasQuery.view.layers );
 fallbackQuery.filter( peliasQuery.view.categories );
-
-geodisambiguationQuery.filter( peliasQuery.view.boundary_country );
-geodisambiguationQuery.filter( peliasQuery.view.boundary_circle );
-geodisambiguationQuery.filter( peliasQuery.view.boundary_rect );
-geodisambiguationQuery.filter( peliasQuery.view.sources );
-geodisambiguationQuery.filter( peliasQuery.view.layers );
-geodisambiguationQuery.filter( peliasQuery.view.categories );
 // --------------------------------
 
 /**
@@ -150,11 +138,10 @@ function generateQuery( clean ){
 }
 
 function getQuery(vs) {
-  if (USE_FALLBACK_QUERY && (
-      hasStreet(vs) ||
-      isCityStateOnlyWithOptionalCountry(vs) ||
-      isCityCountryOnly(vs) ||
-      isPostalCodeOnly(vs))) {
+
+  logger.info(`[query:search] [search_input_type:${determineQueryType(vs)}]`);
+
+  if (USE_FALLBACK_QUERY && (hasStreet(vs) || isPostalCodeOnly(vs))) {
     return {
       type: 'fallback',
       body: fallbackQuery.render(vs)
@@ -167,41 +154,30 @@ function getQuery(vs) {
 
 }
 
+function determineQueryType(vs) {
+  if (vs.isset('input:housenumber') && vs.isset('input:street')) {
+    return 'address';
+  }
+  else if (vs.isset('input:street')) {
+    return 'street';
+  }
+  else if (vs.isset('input:query')) {
+    return 'venue';
+  }
+  else if (['neighbourhood', 'borough', 'postcode', 'county', 'region','country'].some(
+    layer => vs.isset(`input:${layer}`)
+  )) {
+    return 'admin';
+  }
+  return 'other';
+}
+
 function hasStreet(vs) {
   return vs.isset('input:street');
 }
 
-function isCityStateOnlyWithOptionalCountry(vs) {
-  var isSet = (layer) => {
-    return vs.isset(`input:${layer}`);
-  };
-
-  var allowedFields = ['locality', 'region'];
-  var disallowedFields = ['query', 'category', 'housenumber', 'street',
-                          'neighbourhood', 'borough', 'postcode', 'county'];
-
-  return allowedFields.every(isSet) && !disallowedFields.some(isSet);
-
-}
-
-function isCityCountryOnly(vs) {
-  var isSet = (layer) => {
-    return vs.isset(`input:${layer}`);
-  };
-
-  var allowedFields = ['locality', 'country'];
-  var disallowedFields = ['query', 'category', 'housenumber', 'street',
-                          'neighbourhood', 'borough', 'postcode', 'county', 'region'];
-
-  return allowedFields.every(isSet) &&
-        !disallowedFields.some(isSet);
-
-}
-
 function isPostalCodeOnly(vs) {
-  var isSet = (layer) => {
-    return vs.isset(`input:${layer}`);
-  };
+  var isSet = layer => vs.isset(`input:${layer}`);
 
   var allowedFields = ['postcode'];
   var disallowedFields = ['query', 'category', 'housenumber', 'street',

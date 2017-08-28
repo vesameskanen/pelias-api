@@ -35,7 +35,7 @@ function getHouseNumberField(analyzed_address) {
 
 }
 
-function sanitize( raw, clean ){
+function _sanitize( raw, clean ){
 
   // error & warning messages
   const messages = { errors: [], warnings: [] };
@@ -50,10 +50,7 @@ function sanitize( raw, clean ){
 
   }, {});
 
-  if (isPostalCodeOnly(clean.parsed_text)) {
-    messages.errors.push('postalcode-only inputs are not supported');
-  }
-  else if (_.isEmpty(Object.keys(clean.parsed_text))) {
+  if (_.isEmpty(Object.keys(clean.parsed_text))) {
     messages.errors.push(
       `at least one of the following fields is required: ${Object.keys(fields).join(', ')}`);
   }
@@ -89,5 +86,20 @@ function sanitize( raw, clean ){
   return messages;
 }
 
+function _expected() {
+  return [
+    { 'name': 'venue' },
+    { 'name': 'address' },
+    { 'name': 'neighbourhood' },
+    { 'name': 'borough' },
+    { 'name': 'locality' },
+    { 'name': 'county' },
+    { 'name': 'region' },
+    { 'name': 'postalcode' },
+    { 'name': 'country' }];
+}
 // export function
-module.exports = sanitize;
+module.exports = () => ({
+  sanitize: _sanitize,
+  expected: _expected
+});

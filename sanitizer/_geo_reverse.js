@@ -4,8 +4,10 @@ var defaults = require('../query/reverse_defaults');
 var LAT_LON_IS_REQUIRED = true,
     CIRCLE_IS_REQUIRED = false;
 
+const non_coarse_layers = ['venue', 'address', 'street'];
+
 // validate inputs, convert types and apply defaults
-module.exports = function sanitize( raw, clean ){
+function _sanitize( raw, clean ){
 
   // error & warning messages
   var messages = { errors: [], warnings: [] };
@@ -27,16 +29,6 @@ module.exports = function sanitize( raw, clean ){
     raw['boundary.circle.lat'] = clean['point.lat'];
     raw['boundary.circle.lon'] = clean['point.lon'];
 
-    // if no radius was passed, set the default
-    if ( _.isUndefined( raw['boundary.circle.radius'] ) ) {
-      // the default is small unless layers other than venue or address were explicitly specified
-      if (clean.layers && clean.layers.length > 0 && !_.includes(clean.layers, 'venue') && !_.includes(clean.layers, 'address')) {
-        raw['boundary.circle.radius'] = defaults['boundary:circle:radius:coarse'];
-      } else {
-        raw['boundary.circle.radius'] = defaults['boundary:circle:radius'];
-      }
-    }
-
     // santize the boundary.circle
     geo_common.sanitize_circle( 'boundary.circle', clean, raw, CIRCLE_IS_REQUIRED );
 
@@ -46,4 +38,18 @@ module.exports = function sanitize( raw, clean ){
   }
 
   return messages;
-};
+}
+
+function _expected(){
+  return [
+  { name: 'point.lat' },
+  { name: 'point.lon' },
+  { name: 'boundary.circle.lon' }, // copied from point.lon by the API, not user input
+  { name: 'boundary.circle.lat' }, // copied from point.lat by the API, not user input
+  { name: 'boundary.circle.radius'}];
+}
+
+module.exports = () => ({
+  sanitize: _sanitize,
+  expected: _expected
+});

@@ -18,6 +18,8 @@ function setup(peliasConfig) {
   defaultLang = defaultLang || 'default'; // fallback
 
   return function setQueryLanguage(req, res, next) {
+    return next();
+    
     if (_.isUndefined(req.clean)) {
       return next();
     }

@@ -143,7 +143,7 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
 
 
 // validate texts, convert types and apply defaults
-function sanitize( raw, clean ){
+function _sanitize( raw, clean ){
 
   // error & warning messages
   var messages = { errors: [], warnings: [] };
@@ -157,6 +157,7 @@ function sanitize( raw, clean ){
   else {
     // valid text
     clean.text = normalize(raw.text);
+    clean.parser = 'addressit';
 
     // remove anything that may have been parsed before
     var fromLibpostal = clean.parsed_text;
@@ -179,8 +180,15 @@ function sanitize( raw, clean ){
   return messages;
 }
 
+function _expected(){
+  return [{ name: 'text' }];
+}
+
 // export function
-module.exports = sanitize;
+module.exports = () => ({
+  sanitize: _sanitize,
+  expected: _expected
+});
 
 // this is the addressit functionality from https://github.com/pelias/text-analyzer/blob/master/src/addressItParser.js
 var DELIM = ',';
