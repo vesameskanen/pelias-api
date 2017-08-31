@@ -1,28 +1,12 @@
-sudo: false
-language: node_js
-notifications:
-  email: false
-node_js:
-  - 4
-  - 6
-matrix:
-  fast_finish: true
-env:
-  global:
-    - CXX=g++-4.8
-script: npm run travis
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-    packages:
-      - g++-4.8
-before_install:
-  - npm i -g npm@^3.0.0
-before_script:
-  - npm prune
-after_success:
-  - npm run semantic-release
+sudo: required
 branches:
-  except:
-    - /^v\d+\.\d+\.\d+$/
+  only:
+    - master
+    - /201[7-9][0-1][0-9][0-3][0-9]/
+
+services: docker
+install: true
+
+language: C
+
+script: ./travis-build.sh
