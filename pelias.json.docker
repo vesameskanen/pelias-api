@@ -1,6 +1,6 @@
 {
   "esclient": {
-    "apiVersion": "2.3",
+    "apiVersion": "2.4",
     "keepAlive": true,
     "requestTimeout": "20000",
     "hosts": [
@@ -20,6 +20,11 @@
   },
   "logger": {
     "level": ["error", "warning"]
+  },
+  "acceptance-tests": {
+    "endpoints": {
+      "dev": "http://dev-api.digitransit.fi/geocoding/v1/"
+    }
   },
   "api" : {
     "indexName": "pelias",
