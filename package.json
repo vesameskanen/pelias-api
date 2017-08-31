@@ -1,3 +1,4 @@
+
 {
   "name": "pelias-api",
   "version": "0.0.0-semantic-release",
@@ -87,5 +88,8 @@
     "uglify-js": "^3.0.4"
   },
   "pre-commit": [
+    "lint",
+    "test",
+    "check-dependencies"
   ]
 }
