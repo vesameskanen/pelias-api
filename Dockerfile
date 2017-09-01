@@ -28,6 +28,14 @@ RUN git clone --single-branch https://github.com/HSLdevcom/query.git \
   && npm install \
   && npm link
 
+# use our text-analyzer
+ENV TEXT_ANALYZER=/opt/pelias/text-analyzer
+WORKDIR ${TEXT_ANALYZER}
+RUN git clone --single-branch https://github.com/HSLdevcom/pelias-text-analyzer.git \
+  && cd pelias-text-analyzer \
+  && npm install \
+  && npm link
+
 # Where the app is built and run inside the docker fs
 ENV WORK=/opt/pelias/api
 
@@ -40,6 +48,7 @@ ADD . ${WORK}
 # Build and set permissions for arbitrary non-root user
 RUN npm install \
   && npm link pelias-query \
+  && npm link pelias-text-analyzer \
   && npm test \
   && chmod -R a+rwX .
 
