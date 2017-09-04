@@ -1,4 +1,5 @@
 
+
 var check = require('check-types');
 var parser = require('addressit');
 var extend = require('extend');
@@ -51,44 +52,39 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
     parsedText.number = fromLibpostal.number;
   }
 
-  // if 'query' part is set, libpostal has probably failed in parsing
-  // NOTE!! This may change when libpostal parsing improves
-  // try reqularly using libpostal parsing also when query field is set.
-
-  if(true || check.undefined(fromLibpostal.query)) {
-    const street = fromLibpostal.street;
-    if(street) {
-      if((!parsedText.name || parsedText.name===street) && !parsedText.number) {
-        // plain parsed street is suspicious as Libpostal often maps venue name to street
-        // better to search it via name
-        parsedText.name = street;
-      } else {
-        parsedText.street = street;
-      }
+  const street = fromLibpostal.street;
+  if(street) {
+    if((!parsedText.name || parsedText.name===street) && !parsedText.number) {
+      // plain parsed street is suspicious as Libpostal often maps venue name to street
+      // better to search it via name
+      parsedText.name = street;
+    } else {
+      parsedText.street = street;
     }
-    const nbrh = fromLibpostal.neighbourhood;
-    if(nbrh) {
-      parsedText.neighbourhood = nbrh;
-      if(parsedText.name && parsedText.name !== nbrh) {
-        addAdmin(parsedText, nbrh);
-      } else {
-        parsedText.name = nbrh;
-      }
-    }
+  }
 
-    const city = fromLibpostal.city;
-    if(city) {
-      parsedText.city = city;
-      if(parsedText.name && parsedText.name !== city) {
-        addAdmin(parsedText, city);
-      } else {
-        // if only a single item is parsed, don't duplicate it to 2 search slots
-        // why? Because our data does not include small admin areas such as villages
-        // and admin match requirement would produce bad scores
-        // basically this is a bug in libpostal parsing. Such small places should not
-        // get parsed as city
-        parsedText.name = city;
-      }
+  const nbrh = fromLibpostal.neighbourhood;
+  if(nbrh) {
+    parsedText.neighbourhood = nbrh;
+    if(parsedText.name && parsedText.name !== nbrh) {
+      addAdmin(parsedText, nbrh);
+    } else {
+      parsedText.name = nbrh;
+    }
+  }
+
+  const city = fromLibpostal.city;
+  if(city) {
+    parsedText.city = city;
+    if(parsedText.name && parsedText.name !== city) {
+      addAdmin(parsedText, city);
+    } else {
+      // if only a single item is parsed, don't duplicate it to 2 search slots
+      // why? Because our data does not include small admin areas such as villages
+      // and admin match requirement would produce bad scores
+      // basically this is a bug in libpostal parsing. Such small places should not
+      // get parsed as city
+      parsedText.name = city;
     }
   }
 
