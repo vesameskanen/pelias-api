@@ -35,33 +35,6 @@ if (api && api.localization) {
 }
 
 
-// libpostal's parsing cconverts scandic letters: ä -> a ...
-// try restoring the strings
-
-var restoreMap = { 'ä':'a', 'ö':'o', 'å':'a' };
-var restoreRegex = {};
-
-for(var c in restoreMap) {
-  restoreRegex[c] = new RegExp(c, 'gi');
-}
-
-function restoreParsed(parsed, text) {
-  var ntext = text;
-
-  for(var c in restoreMap) {
-    ntext = ntext.replace(restoreRegex[c], restoreMap[c]);
-  }
-
-  // see if parsed string is part of converted text
-  var index = ntext.indexOf(parsed);
-  var len = parsed.length;
-  if(index > -1 && index + len <= text.length) { // yeah, found
-    return normalize(text.substring(index, index+len));
-  }
-  return null;
-}
-
-
 function addAdmin(parsedText, admin) {
   if (parsedText.regions && parsedText.regions.indexOf(admin) > -1) {
     return; // nop
@@ -82,49 +55,39 @@ function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
   // NOTE!! This may change when libpostal parsing improves
   // try reqularly using libpostal parsing also when query field is set.
 
-  if(check.undefined(fromLibpostal.query)) {
-
-    if(check.assigned(fromLibpostal.street)) {
-      var street = restoreParsed(fromLibpostal.street, text);
-      if(street) {
-        if((!parsedText.name || parsedText.name===street) && !parsedText.number) {
-          // plain parsed street is suspicious as Libpostal often maps venue name to street
-          // better to search it via name
-          parsedText.name = street;
-        } else {
-          parsedText.street = street;
-        }
+  if(true || check.undefined(fromLibpostal.query)) {
+    const street = fromLibpostal.street;
+    if(street) {
+      if((!parsedText.name || parsedText.name===street) && !parsedText.number) {
+        // plain parsed street is suspicious as Libpostal often maps venue name to street
+        // better to search it via name
+        parsedText.name = street;
+      } else {
+        parsedText.street = street;
+      }
+    }
+    const nbrh = fromLibpostal.neighbourhood;
+    if(nbrh) {
+      parsedText.neighbourhood = nbrh;
+      if(parsedText.name && parsedText.name !== nbrh) {
+        addAdmin(parsedText, nbrh);
+      } else {
+        parsedText.name = nbrh;
       }
     }
 
-    if(check.assigned(fromLibpostal.neighbourhood)) {
-      var nbrh = restoreParsed(fromLibpostal.neighbourhood, text);
-
-      if(nbrh) {
-        parsedText.neighbourhood = nbrh;
-        if(parsedText.name && parsedText.name !== nbrh) {
-          addAdmin(parsedText, nbrh);
-        } else {
-          parsedText.name = nbrh;
-        }
-      }
-    }
-
-    if(check.assigned(fromLibpostal.city)) {
-      var city = restoreParsed(fromLibpostal.city, text);
-
-      if(city) {
-        parsedText.city = city;
-        if(parsedText.name && parsedText.name !== city) {
-          addAdmin(parsedText, city);
-        } else {
-          // if only a single item is parsed, don't duplicate it to 2 search slots
-          // why? Because our data does not include small admin areas such as villages
-          // and admin match requirement would produce bad scores
-          // basically this is a bug in libpostal parsing. Such small palces should not
-          // get parsed as city
-          parsedText.name = city;
-        }
+    const city = fromLibpostal.city;
+    if(city) {
+      parsedText.city = city;
+      if(parsedText.name && parsedText.name !== city) {
+        addAdmin(parsedText, city);
+      } else {
+        // if only a single item is parsed, don't duplicate it to 2 search slots
+        // why? Because our data does not include small admin areas such as villages
+        // and admin match requirement would produce bad scores
+        // basically this is a bug in libpostal parsing. Such small places should not
+        // get parsed as city
+        parsedText.name = city;
       }
     }
   }
