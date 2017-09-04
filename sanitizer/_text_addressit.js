@@ -48,7 +48,7 @@ function addAdmin(parsedText, admin) {
 function assignValidLibpostalParsing(parsedText, fromLibpostal, text) {
 
   // validate street number
-  if(check.assigned(fromLibpostal.number) && streetNumberValidator(fromLibpostal.number)) {
+  if(check.assigned(fromLibpostal.number) && streetNumberValidator(fromLibpostal.number) && fromLibpostal.street) {
     parsedText.number = fromLibpostal.number;
   }
 
