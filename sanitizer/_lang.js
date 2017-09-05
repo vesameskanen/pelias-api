@@ -14,5 +14,15 @@ function sanitize( raw, clean ){
   return messages;
 }
 
+
+function expected() {
+  // add lang as a valid parameter
+  return [{ name: 'lang' }];
+}
+
 // export function
-module.exports = sanitize;
+module.exports = () => ({
+  sanitize: sanitize,
+  expected: expected
+});
+

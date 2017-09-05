@@ -2,8 +2,8 @@
 
 const peliasQuery = require('pelias-query');
 const check = require('check-types');
-const logger = require('pelias-logger').get('api');
 const _ = require('lodash');
+const logger = require('pelias-logger').get('api');
 
 var defaults = require('./reverse_defaults');
 
@@ -52,7 +52,8 @@ function generateQuery( clean ){
 
   // layers
   if( check.array(clean.layers) && clean.layers.length ) {
-    vs.var( 'layers', clean.layers);
+    // only include non-coarse layers
+    vs.var( 'layers', _.intersection(clean.layers, ['address', 'street', 'venue']));
     logStr += '[param:layers] ';
   }
 
@@ -71,13 +72,24 @@ function generateQuery( clean ){
   // where point.lan/point.lon are provided in the
   // absense of boundary.circle.lat/boundary.circle.lon
   if( check.number(clean['boundary.circle.lat']) &&
-      check.number(clean['boundary.circle.lon']) &&
-      check.number(clean['boundary.circle.radius']) ){
-    vs.set({
-      'boundary:circle:lat': clean['boundary.circle.lat'],
-      'boundary:circle:lon': clean['boundary.circle.lon'],
-      'boundary:circle:radius': clean['boundary.circle.radius'] + 'km'
-    });
+      check.number(clean['boundary.circle.lon']) ){
+
+        vs.set({
+          'boundary:circle:lat': clean['boundary.circle.lat'],
+          'boundary:circle:lon': clean['boundary.circle.lon']
+        });
+
+        if (check.undefined(clean['boundary.circle.radius'])){
+          // for coarse reverse when boundary circle radius is undefined
+          vs.set({
+            'boundary:circle:radius': defaults['boundary:circle:radius']
+          });
+        } else if (check.number(clean['boundary.circle.radius'])){
+          // plain reverse where boundary circle is a valid number
+          vs.set({
+            'boundary:circle:radius': clean['boundary.circle.radius'] + 'km'
+          });
+        }
     logStr += '[param:boundary_circle] ';
   }
 

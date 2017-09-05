@@ -16,7 +16,7 @@ module.exports.tests.query = function(test, common) {
       'point.lon': -82.50622,
       'boundary.circle.lat': 29.49136,
       'boundary.circle.lon': -82.50622,
-      'boundary.circle.radius': 500
+      'boundary.circle.radius': 3
     });
 
     var compiled = JSON.parse( JSON.stringify( query ) );
@@ -33,7 +33,7 @@ module.exports.tests.query = function(test, common) {
       'point.lon': 0,
       'boundary.circle.lat': 0,
       'boundary.circle.lon': 0,
-      'boundary.circle.radius': 500
+      'boundary.circle.radius': 3
     });
 
     var compiled = JSON.parse( JSON.stringify( query ) );
@@ -61,13 +61,30 @@ module.exports.tests.query = function(test, common) {
     t.end();
   });
 
+  // for coarse reverse cases where boundary circle radius isn't used
+  test('undefined radius set to default radius', function(t) {
+    var query = generate({
+      'point.lat': 12.12121,
+      'point.lon': 21.21212,
+      'boundary.circle.lat': 12.12121,
+      'boundary.circle.lon': 21.21212
+    });
+
+    var compiled = JSON.parse( JSON.stringify( query ) );
+    var expected = '1km';
+
+    t.deepEqual(compiled.type, 'reverse', 'query type set');
+    t.deepEqual(compiled.body.query.bool.filter[0].geo_distance.distance, expected, 'distance set to default boundary circle radius');
+    t.end();
+  });
+
   test('boundary.circle lat/lon/radius - overrides point.lat/lon when set', function(t) {
     var clean = {
       'point.lat': 29.49136,
       'point.lon': -82.50622,
       'boundary.circle.lat': 111,
       'boundary.circle.lon': 333,
-      'boundary.circle.radius': 500
+      'boundary.circle.radius': 3
     };
     var query = generate(clean);
     var compiled = JSON.parse( JSON.stringify( query ) );
@@ -102,7 +119,7 @@ module.exports.tests.query = function(test, common) {
       'point.lon': -82.50622,
       'boundary.circle.lat': 29.49136,
       'boundary.circle.lon': -82.50622,
-      'boundary.circle.radius': 500,
+      'boundary.circle.radius': 3,
       'boundary.country': 'ABC'
     });
 
@@ -120,7 +137,7 @@ module.exports.tests.query = function(test, common) {
       'point.lon': -82.50622,
       'boundary.circle.lat': 29.49136,
       'boundary.circle.lon': -82.50622,
-      'boundary.circle.radius': 500,
+      'boundary.circle.radius': 3,
       'sources': ['test']
     });
 
@@ -132,23 +149,46 @@ module.exports.tests.query = function(test, common) {
     t.end();
   });
 
-  test('valid layers filter', function(t) {
-    var query = generate({
+  test('valid layers filter', (t) => {
+    const query = generate({
       'point.lat': 29.49136,
       'point.lon': -82.50622,
       'boundary.circle.lat': 29.49136,
       'boundary.circle.lon': -82.50622,
-      'boundary.circle.radius': 500,
-      'layers': ['country']
+      'boundary.circle.radius': 3,
+      // only venue, address, and street layers should be retained
+      'layers': ['neighbourhood', 'venue', 'locality', 'address', 'region', 'street', 'country']
     });
 
-    var compiled = JSON.parse( JSON.stringify( query ) );
-    var expected = require('../fixture/reverse_with_layer_filtering');
+    const compiled = JSON.parse( JSON.stringify( query ) );
+    const expected = require('../fixture/reverse_with_layer_filtering');
 
     t.deepEqual(compiled.type, 'reverse', 'query type set');
     t.deepEqual(compiled.body, expected, 'valid reverse query with source filtering');
     t.end();
+
   });
+
+  test('valid layers filter - subset of non-coarse layers', (t) => {
+    const query = generate({
+      'point.lat': 29.49136,
+      'point.lon': -82.50622,
+      'boundary.circle.lat': 29.49136,
+      'boundary.circle.lon': -82.50622,
+      'boundary.circle.radius': 3,
+      // only venue, address, and street layers should be retained
+      'layers': ['neighbourhood', 'venue', 'street', 'locality']
+    });
+
+    const compiled = JSON.parse( JSON.stringify( query ) );
+    const expected = require('../fixture/reverse_with_layer_filtering_non_coarse_subset');
+
+    t.deepEqual(compiled.type, 'reverse', 'query type set');
+    t.deepEqual(compiled.body, expected, 'valid reverse query with source filtering');
+    t.end();
+
+  });
+
 };
 
 module.exports.all = function (tape, common) {

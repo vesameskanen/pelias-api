@@ -13,18 +13,26 @@ RUN mkdir -p /mnt/data/libpostal
 
 RUN git clone https://github.com/openvenues/libpostal \
   && cd libpostal \
-  && git checkout tags/v0.3.4 \
+  && git checkout tags/v1.0.0 \
   && ./bootstrap.sh \
   && ./configure --datadir=/mnt/data/libpostal \
   && make \
   && make install \
   && ldconfig
 
-# use our extended query module until it gets merged upstream
+# use our extended query module
 ENV QUERY=/opt/pelias/query
 WORKDIR ${QUERY}
 RUN git clone --single-branch https://github.com/HSLdevcom/query.git \
   && cd query \
+  && npm install \
+  && npm link
+
+# use our text-analyzer
+ENV TEXT_ANALYZER=/opt/pelias/text-analyzer
+WORKDIR ${TEXT_ANALYZER}
+RUN git clone --single-branch https://github.com/HSLdevcom/pelias-text-analyzer.git \
+  && cd pelias-text-analyzer \
   && npm install \
   && npm link
 
@@ -40,6 +48,7 @@ ADD . ${WORK}
 # Build and set permissions for arbitrary non-root user
 RUN npm install \
   && npm link pelias-query \
+  && npm link pelias-text-analyzer \
   && npm test \
   && chmod -R a+rwX .
 
